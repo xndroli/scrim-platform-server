@@ -7,7 +7,7 @@ export const usersRepository = {
     const result = await db
       .select()
       .from(users)
-      .where(eq(users.user_id, id))
+      .where(eq(users.id, parseInt(id, 10)))
       .limit(1);
       
     return result[0] || null;
@@ -36,7 +36,7 @@ export const usersRepository = {
     const result = await db
       .update(users)
       .set(userData)
-      .where(eq(users.user_id, id))
+      .where(eq(users.id, parseInt(id, 10)))
       .returning();
       
     return result[0];
@@ -45,6 +45,6 @@ export const usersRepository = {
   async delete(id: string) {
     return await db
       .delete(users)
-      .where(eq(users.user_id, id));
+      .where(eq(users.id, parseInt(id, 10)));
   },
 };

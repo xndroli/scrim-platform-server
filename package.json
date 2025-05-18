@@ -8,10 +8,10 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint . --ext .ts",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "ts-node src/db/migrations.ts",
-    "db:studio": "drizzle-kit studio",
-    "postdeploy": "npm run db:migrate"
+    "db:generate": "pnpm exec drizzle-kit generate",
+    "db:migrate": "pnpm exec drizzle-kit migrate",
+    "db:studio": "pnpm exec drizzle-kit studio",
+    "postdeploy": "db:migrate"
   },
   "keywords": [],
   "author": "",

@@ -1,9 +1,9 @@
-import config from "@/lib/config";
+import { config } from "../config/index";
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
-    url: config.env.upstash.redisUrl,
-    token: config.env.upstash.redisToken,
+    url: config.redis.url,
+    token: config.redis.token,
 });
 
 export default redis;
