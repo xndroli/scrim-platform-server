@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { users } from '../../db/schema';
 import { eq, or } from 'drizzle-orm';
 import { generateToken } from '../../utils/jwt';
+import { sendEmail, emailTemplates } from '../../utils/email';
 
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
@@ -50,6 +51,19 @@ export class AuthController {
         username: newUser[0].username,
       });
       
+      // Send welcome email using QStash
+      try {
+        await sendEmail({
+          to: email,
+          ...emailTemplates.welcome(username)
+        });
+        console.log(`Welcome email queued for ${username} (${email})`);
+      } catch (emailError) {
+        // Log email error but don't fail registration
+        console.error('Failed to queue welcome email:', emailError);
+      }
+
+      // Return response
       res.status(201).json({
         status: 'success',
         message: 'User registered successfully',
@@ -58,6 +72,7 @@ export class AuthController {
           token,
         },
       });
+
     } catch (error) {
       next(error);
     }

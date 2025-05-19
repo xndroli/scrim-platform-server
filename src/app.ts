@@ -13,11 +13,12 @@ app.use(cors({
   origin: config.CORS_ORIGIN,
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // API routes
 app.use('/api', routes);
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
