@@ -102,18 +102,38 @@ export const playerMatchStats = pgTable('player_match_stats', {
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
-  playerTeams: many(teamMembers),
-  ownedTeams: many(teams),
-  createdScrims: many(scrims),
+  teamMembers: many(teamMembers),
+  ownedTeams: many(teams, { relationName: 'teamOwner' }),
+  createdScrims: many(scrims, { relationName: 'scrimCreator' }),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
   owner: one(users, {
     fields: [teams.ownerId],
     references: [users.id],
+    relationName: 'teamOwner',
   }),
   members: many(teamMembers),
-  scrims: many(scrimParticipants),
+  scrimParticipations: many(scrimParticipants),
+}));
+
+export const scrimsRelations = relations(scrims, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [scrims.creatorId],
+    references: [users.id],
+    relationName: 'scrimCreator',
+  }),
+  participants: many(scrimParticipants),
+  matches: many(matches),
+}));
+
+export const matchesRelations = relations(matches, ({ one, many }) => ({
+  scrim: one(scrims, {
+    fields: [matches.scrimId],
+    references: [scrims.id],
+  }),
+  results: many(matchResults),
+  playerStats: many(playerMatchStats),
 }));
 
 // Additional relations for other tables...

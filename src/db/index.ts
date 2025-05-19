@@ -1,22 +1,22 @@
+import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
-import { neon, Pool } from '@neondatabase/serverless';
-import { config } from '../config';
-import { logger } from '../utils/logger';
+import { config } from '../config/environment';
+import * as schema from './schema';
 
-// Initialize Neon client
-const sql = neon(config.database.url);
+// Initialize Neon HTTP client
+const sql = neon(config.DATABASE_URL!);
 
-// Initialize Drizzle
-export const db = drizzle({ client: sql });
+// Create Drizzle ORM instance
+export const db = drizzle(sql, { schema });
 
-// Test database connection
-export const testConnection = async () => {
+// Check database connection
+export const checkDbConnection = async () => {
   try {
     const result = await sql`SELECT NOW()`;
-    logger.info('Database connection successful');
-    return result;
+    console.log('✅ Database connection successful:', result[0]);
+    return true;
   } catch (error) {
-    logger.error('Database connection failed:', error);
-    throw error;
+    console.error('❌ Database connection failed:', error);
+    return false;
   }
 };

@@ -1,42 +1,29 @@
 import { z } from 'zod';
 import * as dotenv from 'dotenv';
 
+// Load environment variables
 dotenv.config();
 
 // Define schema for environment variables
 const envSchema = z.object({
-  // Server
-  PORT: z.string().default('3001'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  
-  // Database
-  DATABASE_URL: z.string(),
-  
-  // Auth
-  JWT_SECRET: z.string(),
+  PORT: z.string().transform(val => parseInt(val, 10)).default('3000'),
+  JWT_SECRET: z.string().min(1),
   JWT_EXPIRES_IN: z.string().default('7d'),
-  
-  // Redis
-  UPSTASH_REDIS_URL: z.string(),
-  UPSTASH_REDIS_TOKEN: z.string(),
-  
-  // QStash
-  QSTASH_URL: z.string(),
-  QSTASH_TOKEN: z.string(),
-  
-  // Email
-  RESEND_TOKEN: z.string(),
-  
-  // CORS
-  CORS_ORIGIN: z.string(),
+  DATABASE_URL: z.string().min(1),
+  CORS_ORIGIN: z.string().default('*'),
+  UPSTASH_REDIS_URL: z.string().optional(),
+  UPSTASH_REDIS_TOKEN: z.string().optional(),
+  RATE_LIMIT_MAX: z.string().transform(val => parseInt(val, 10)).default('100'),
+  RATE_LIMIT_WINDOW_MS: z.string().transform(val => parseInt(val, 10)).default('60000'),
 });
 
-// Parse and validate environment variables
+// Parse environment variables
 const env = envSchema.safeParse(process.env);
 
 if (!env.success) {
-  console.error('❌ Invalid environment variables:', env.error.format());
+  console.error('❌ Invalid environment variables:', env.error.flatten().fieldErrors);
   throw new Error('Invalid environment variables');
 }
 
-export const environment = env.data;
+export const config = env.data;

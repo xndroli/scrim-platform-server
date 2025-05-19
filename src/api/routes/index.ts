@@ -1,22 +1,13 @@
 import { Router } from 'express';
-import { authRoutes } from './auth.routes';
-import { usersRoutes } from './users.routes';
-import { teamsRoutes } from './teams.routes';
-import { scrimsRoutes } from './scrims.routes';
+import authRoutes from './auth.routes';
+import teamRoutes from './team.routes';
+// Import other route modules as needed
 
 const router = Router();
 
+// Register routes
 router.use('/auth', authRoutes);
-router.use('/users', usersRoutes);
-router.use('/teams', teamsRoutes);
-router.use('/scrims', scrimsRoutes);
+router.use('/teams', teamRoutes);
+// Register other routes as needed
 
-export const routes = router;
-
-router.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
+export { router as routes };

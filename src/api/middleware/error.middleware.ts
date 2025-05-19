@@ -1,46 +1,45 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../../utils/error';
+import { ApiError } from '../../utils/errors';
+import { ZodError } from 'zod';
 import { logger } from '../../utils/logger';
-import { config } from '../../config';
 
 export const errorMiddleware = (
-  err: Error | AppError,
+  err: Error,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  logger.error(err);
+  logger.error(`Error: ${err.message}`);
   
-  // Default error
-  let statusCode = 500;
-  let message = 'Something went wrong';
-  let errors: any = undefined;
-  
-  // AppError handling
-  if (err instanceof AppError) {
-    statusCode = err.statusCode;
-    message = err.message;
-    errors = err.errors;
+  // Handle Zod validation errors
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Validation error',
+      errors: err.errors,
+    });
   }
   
-  // Validation error
-  if (err.name === 'ZodError') {
-    statusCode = 400;
-    message = 'Validation error';
-    errors = err;
+  // Handle custom API errors
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      status: 'error',
+      message: err.message,
+    });
   }
   
-  // JWT error
-  if (err.name === 'JsonWebTokenError') {
-    statusCode = 401;
-    message = 'Invalid token';
+  // Handle JWT errors
+  if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Invalid or expired token',
+    });
   }
   
-  // Send response
-  res.status(statusCode).json({
-    success: false,
-    message,
-    errors,
-    stack: config.server.nodeEnv === 'development' ? err.stack : undefined,
+  // Handle unexpected errors
+  console.error(err);
+  return res.status(500).json({
+    status: 'error',
+    message: 'Internal server error',
   });
 };

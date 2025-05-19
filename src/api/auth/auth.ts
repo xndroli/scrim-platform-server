@@ -2,15 +2,15 @@
 import express from 'express';
 import { hash, compare } from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { db } from '../database/drizzle';
-import { users } from '../database/schema';
+import { db } from '../../db/drizzle';
+import { users } from '../../db/schema';
 import { eq } from 'drizzle-orm';
-import ratelimit from '../lib/ratelimit';
+import ratelimit from '../../utils/ratelimit';
 
 const router = express.Router();
 
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+router.post('/login', async (req, res, next) => {
+  const { email, passwordHash } = req.body;
   
   const ip = req.ip || '127.0.0.1';
   const { success } = await ratelimit.limit(ip);
@@ -30,7 +30,7 @@ router.post('/login', async (req, res) => {
     }
     
     // Check password
-    const isPasswordValid = await compare(password, user[0].password);
+    const isPasswordValid = await compare(passwordHash, user[0].passwordHash);
     
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -38,25 +38,25 @@ router.post('/login', async (req, res) => {
     
     // Generate JWT token
     const token = jwt.sign(
-      { id: user[0].user_id, email: user[0].email, name: user[0].fullName },
+      { id: user[0].id, email: user[0].email, name: user[0].username },
       process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
     
-    return res.json({ 
+    res.json({ 
       success: true, 
       token,
       user: {
-        id: user[0].user_id,
+        id: user[0].id,
         email: user[0].email,
-        name: user[0].fullName
+        name: user[0].username
       }
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Login failed' });
   }
-});
+}) as express.RequestHandler;
 
 // Similar endpoints for register, etc.
 

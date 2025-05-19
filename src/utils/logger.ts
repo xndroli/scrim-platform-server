@@ -1,27 +1,17 @@
-import { config } from '../config';
-
-const formatMessage = (level: string, message: string, ...meta: any[]) => {
-  const timestamp = new Date().toISOString();
-  const metaString = meta.length ? JSON.stringify(meta) : '';
-  return `[${timestamp}] [${level.toUpperCase()}] ${message} ${metaString}`;
-};
-
+// Simple logger for now, can be expanded with Winston or other logging libraries
 export const logger = {
-  info(message: string, ...meta: any[]) {
-    console.log(formatMessage('info', message, ...meta));
+  info: (message: string, ...args: any[]) => {
+    console.log(`[INFO] ${message}`, ...args);
   },
-  
-  error(message: string, ...meta: any[]) {
-    console.error(formatMessage('error', message, ...meta));
+  error: (message: string, ...args: any[]) => {
+    console.error(`[ERROR] ${message}`, ...args);
   },
-  
-  warn(message: string, ...meta: any[]) {
-    console.warn(formatMessage('warn', message, ...meta));
+  warn: (message: string, ...args: any[]) => {
+    console.warn(`[WARN] ${message}`, ...args);
   },
-  
-  debug(message: string, ...meta: any[]) {
-    if (config.server.nodeEnv === 'development') {
-      console.debug(formatMessage('debug', message, ...meta));
+  debug: (message: string, ...args: any[]) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[DEBUG] ${message}`, ...args);
     }
   },
 };

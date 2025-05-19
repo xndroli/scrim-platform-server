@@ -1,4 +1,4 @@
-import { environment } from './environment';
+import { config } from './environment';
 
 export const config = {
   server: {

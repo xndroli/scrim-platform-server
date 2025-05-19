@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { usersRepository } from '../repositories/users.repository';
-import { AppError } from '../utils/error';
+import { AppError } from '../utils/errors';
 import { sendEmail } from '../utils/email';
 
 // Helper function for JWT signing to avoid TypeScript errors
