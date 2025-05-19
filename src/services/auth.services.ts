@@ -1,8 +1,8 @@
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { config } from '../config';
+import { config } from '../config/environment';
 import { usersRepository } from '../repositories/users.repository';
-import { AppError } from '../utils/errors';
+import { UnauthorizedError, BadRequestError, NotFoundError } from '../utils/errors';
 import { sendEmail } from '../utils/email';
 
 // Helper function for JWT signing to avoid TypeScript errors
@@ -18,20 +18,20 @@ export const authService = {
     const user = await usersRepository.findByEmail(email);
     
     if (!user) {
-      throw new AppError('Invalid credentials', 401);
+      throw new UnauthorizedError('Invalid credentials');
     }
     
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     
     if (!isPasswordValid) {
-      throw new AppError('Invalid credentials', 401);
+      throw new UnauthorizedError('Invalid credentials');
     }
     
     // Generate token
     const token = signJwt(
       { id: user.id, email: user.email },
-      config.auth.jwtExpiresIn || '7d'
+      config.JWT_EXPIRES_IN || '7d'
     );
     
     return {
@@ -50,7 +50,7 @@ export const authService = {
     const existingUser = await usersRepository.findByEmail(userData.email);
     
     if (existingUser) {
-      throw new AppError('User already exists', 400);
+      throw new BadRequestError('User already exists');
     }
     
     // Hash password
@@ -65,7 +65,7 @@ export const authService = {
     // Generate token
     const token = signJwt(
       { id: user.id, email: user.email },
-      config.auth.jwtExpiresIn || '7d'
+      config.JWT_EXPIRES_IN || '7d'
     );
     
     return {
@@ -84,7 +84,7 @@ export const authService = {
     const user = await usersRepository.findByEmail(email);
     
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new NotFoundError('User not found');
     }
     
     // Generate reset token
