@@ -33,10 +33,11 @@ export const scrimValidators = {
   }),
   
   createMatch: z.object({
+    params: z.object({
+      scrimId: z.string().transform(val => parseInt(val)),
+    }),
     body: z.object({
-      scrimId: z.number().int(),
       mapName: z.string().optional(),
-      startTime: z.string().datetime().optional(),
     }),
   }),
   
