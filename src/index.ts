@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoutes from './api/auth';
+import authRoutes from './api/auth/auth';
 import eventRoutes from './api/events';
 // ... other routes
 

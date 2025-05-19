@@ -51,6 +51,9 @@ importers:
         specifier: ^3.24.4
         version: 3.24.4
     devDependencies:
+      '@types/cors':
+        specifier: ^2.8.18
+        version: 2.8.18
       '@types/express':
         specifier: ^5.0.2
         version: 5.0.2
@@ -515,6 +518,9 @@ packages:
 
   '@types/connect@3.4.38':
     resolution: {integrity: sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==}
+
+  '@types/cors@2.8.18':
+    resolution: {integrity: sha512-nX3d0sxJW41CqQvfOzVG1NCTXfFDrDWIghCZncpHeWlVFd81zxB/DLhg7avFg6eHLCRX7ckBmoIIcqa++upvJA==}
 
   '@types/diff-match-patch@1.0.36':
     resolution: {integrity: sha512-xFdR6tkm0MWvBfO8xXCSsinYxHcqkQUlcHeSpMC2ukzOb6lwQAfDmW+Qt0AvlGd8HpsS28qKsB+oPeJn9I39jg==}
@@ -1966,6 +1972,10 @@ snapshots:
       '@types/node': 22.15.18
 
   '@types/connect@3.4.38':
+    dependencies:
+      '@types/node': 22.15.18
+
+  '@types/cors@2.8.18':
     dependencies:
       '@types/node': 22.15.18
 
