@@ -15,7 +15,13 @@ export const validate = (schema: AnyZodObject) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        next(new BadRequestError(error.message));
+        // Format Zod errors into a more readable structure
+        const errors = error.errors.map((err) => ({
+          path: err.path.join('.'),
+          message: err.message
+        }));
+        
+        next(new BadRequestError(JSON.stringify(errors)));
       } else {
         next(error);
       }
