@@ -24,7 +24,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     const payload = verifyToken(token);
     
     // Attach user to request object
-    req.user = payload;
+    req.user = payload ?? undefined;
     
     next();
   } catch (error) {
