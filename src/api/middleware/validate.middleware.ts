@@ -4,10 +4,11 @@ import { BadRequestError } from '../../utils/errors';
 
 export const validate = (schema: AnyZodObject) => {
   return async (req: Request, res: Response, next: NextFunction) => {
+    console.log('Request body:', req.body);
+    console.log('Content-Type:', req.headers['content-type']);
     try {
       // Validate request body directly against schema
       await schema.parseAsync(req.body);
-      
       next();
     } catch (error) {
       if (error instanceof ZodError) {
