@@ -9,24 +9,36 @@ const envSchema = z.object({
   // Server Configuration
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(val => parseInt(val, 10)).default('3000'),
+
   // Database Configuration
   DATABASE_URL: z.string().min(1),
+
   // JWT Configuration
   JWT_SECRET: z.string().min(1),
   JWT_EXPIRES_IN: z.string().default('7d'),
+
+  // JWT Refresh Token Configuration (new)
+  JWT_REFRESH_SECRET: z.string().optional().default(''),
+  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+  JWT_THROW_ERROR: z.string().optional().default('true'),
+
   // CORS Configuration
   CORS_ORIGIN: z.string().default('*'),
+
   // Upstash Redis Configuration
   UPSTASH_REDIS_URL: z.string().optional(),
   UPSTASH_REDIS_TOKEN: z.string().optional(),
+
   // QStash Configuration
   QSTASH_URL: z.string().url().default('https://qstash.upstash.io/v2/publish'),
   QSTASH_TOKEN: z.string().optional(),
   QSTASH_CURRENT_SIGNING_KEY: z.string().optional(),
   QSTASH_NEXT_SIGNING_KEY: z.string().optional(),
+
   // Resend Email Configuration
   RESEND_TOKEN: z.string().optional(),
   EMAIL_FROM_ADDRESS: z.string().email().optional(),
+
   // Rate Limiting Configuration
   RATE_LIMIT_MAX: z.string().transform(val => parseInt(val, 10)).default('100'),
   RATE_LIMIT_WINDOW_MS: z.string().transform(val => parseInt(val, 10)).default('60000'),
@@ -40,7 +52,11 @@ if (!env.success) {
   throw new Error('Invalid environment variables');
 }
 
-export const config = env.data;
+// Extract the validated environment variables
+export const config = env.data as { effectiveRefreshSecret: string } & typeof env.data;
+
+// Compute the effective refresh token secret (use JWT_SECRET if refresh secret is not specified)
+config.effectiveRefreshSecret = config.JWT_REFRESH_SECRET || config.JWT_SECRET;
 
 // Helper function to check if Upstash Redis is configured
 export const isRedisConfigured = (): boolean => {

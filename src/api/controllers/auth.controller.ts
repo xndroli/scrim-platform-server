@@ -3,8 +3,25 @@ import bcrypt from 'bcryptjs';
 import { db } from '../../db';
 import { users } from '../../db/schema';
 import { eq, or } from 'drizzle-orm';
-import { generateToken } from '../../utils/jwt';
-import { sendEmail, emailTemplates } from '../../utils/email';
+import { generateToken, generateRefreshToken, verifyRefreshToken } from '../../utils/jwt';
+//import { sendEmail, emailTemplates } from '../../utils/email';
+
+// Cookie configuration
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production', // Use secure in production
+  sameSite: 'strict' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: '/'
+};
+
+// Refresh token cookie options (longer expiry)
+const refreshCookieOptions = {
+  ...cookieOptions,
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  path: '/api/auth/refresh-token' // Restrict path for added security
+};
+
 
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction) {
@@ -45,23 +62,31 @@ export class AuthController {
           createdAt: users.createdAt,
         });
       
-      // Generate token
+      // Generate tokens
       const token = generateToken({
         userId: newUser[0].id,
         username: newUser[0].username,
       });
+
+      const refreshToken = generateRefreshToken({
+        userId: newUser[0].id,
+      });
+
+      // Set tokens as HttpOnly cookies
+      res.cookie('auth-token', token, cookieOptions);
+      res.cookie('refresh-token', refreshToken, refreshCookieOptions);
       
       // Send welcome email using QStash
-      try {
-        await sendEmail({
-          to: email,
-          ...emailTemplates.welcome(username)
-        });
-        console.log(`Welcome email queued for ${username} (${email})`);
-      } catch (emailError) {
-        // Log email error but don't fail registration
-        console.error('Failed to queue welcome email:', emailError);
-      }
+      // try {
+      //   await sendEmail({
+      //     to: email,
+      //     ...emailTemplates.welcome(username)
+      //   });
+      //   console.log(`Welcome email queued for ${username} (${email})`);
+      // } catch (emailError) {
+      //   // Log email error but don't fail registration
+      //   console.error('Failed to queue welcome email:', emailError);
+      // }
 
       // Return response
       res.status(201).json({
@@ -104,11 +129,19 @@ export class AuthController {
         });
       }
       
-      // Generate token
+      // Generate tokens
       const token = generateToken({
         userId: user.id,
         username: user.username,
       });
+
+      const refreshToken = generateRefreshToken({
+        userId: user.id,
+      });
+
+      // Set tokens as HttpOnly cookies
+      res.cookie('auth-token', token, cookieOptions);
+      res.cookie('refresh-token', refreshToken, refreshCookieOptions);
       
       // Update last login time
       await db.update(users)
@@ -127,6 +160,87 @@ export class AuthController {
           },
           token,
         },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async refreshToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Get refresh token from cookies
+      const refreshToken = req.cookies['refresh-token'];
+      
+      if (!refreshToken) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Refresh token not found',
+        });
+      }
+      
+      // Verify refresh token
+      const decoded = verifyRefreshToken(refreshToken);
+      
+      if (!decoded || !decoded.userId) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Invalid refresh token',
+        });
+      }
+      
+      // Get user from database
+      const userResult = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
+      
+      if (userResult.length === 0) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'User not found',
+        });
+      }
+      
+      const user = userResult[0];
+      
+      // Generate new tokens
+      const newToken = generateToken({
+        userId: user.id,
+        username: user.username,
+      });
+      
+      const newRefreshToken = generateRefreshToken({
+        userId: user.id,
+      });
+      
+      // Set new tokens as HttpOnly cookies
+      res.cookie('auth-token', newToken, cookieOptions);
+      res.cookie('refresh-token', newRefreshToken, refreshCookieOptions);
+      
+      res.status(200).json({
+        status: 'success',
+        message: 'Token refreshed successfully',
+        data: {
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            profileImage: user.profileImage,
+          },
+          token: newToken,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+  
+  async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Clear cookies
+      res.clearCookie('auth-token', { path: '/' });
+      res.clearCookie('refresh-token', { path: '/api/auth/refresh-token' });
+      
+      res.status(200).json({
+        status: 'success',
+        message: 'Logged out successfully',
       });
     } catch (error) {
       next(error);
