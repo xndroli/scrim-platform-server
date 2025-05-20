@@ -12,22 +12,24 @@ declare global {
 }
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedError('Authentication required');
-    }
-    
-    // Extract and verify token
-    const token = authHeader.split(' ')[1];
-    const payload = verifyToken(token);
-    
-    // Attach user to request object
-    req.user = payload ?? undefined;
-    
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
+  // Get token from cookie first
+  const cookieToken = req.cookies['auth-token'];
+  
+  // Then try to get from Authorization header as fallback
+  const authHeader = req.headers.authorization;
+  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+  
+  // Use token from cookie or header
+  const token = cookieToken || headerToken;
+  
+  if (!token) {
+    throw new UnauthorizedError('Authentication required');
+  };
+  
+  // Verify token
+  const decoded = verifyToken(token);
+  
+  if (!decoded) {
+    throw new UnauthorizedError('Invalid or expired token');
+  };
+}

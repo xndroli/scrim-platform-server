@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config } from './config/environment';
 import { routes } from './api/routes';
+import cookieParser from 'cookie-parser';
 
 // Create Express app
 const app = express();
@@ -17,6 +18,9 @@ app.use(cors({
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Cookie parsing
+app.use(cookieParser());
 
 // API routes
 app.use('/api', routes);
