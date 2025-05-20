@@ -4,15 +4,22 @@ import { BadRequestError } from '../../utils/errors';
 
 export const validate = (schema: AnyZodObject) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    console.log('Request body:', req.body);
-    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Request body:', JSON.stringify(req.body));
+    console.log('Request headers:', req.headers['content-type']);
+    console.log('Schema structure:', schema);
+    
     try {
-      // Validate request body directly against schema
-      await schema.parseAsync(req.body);
+      // Validate request against schema
+      await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params,
+      });
+      
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        // Format Zod errors into a more readable structure
+        console.log('Zod validation error:', error.errors);
         const errors = error.errors.map((err) => ({
           path: err.path.join('.'),
           message: err.message
@@ -20,6 +27,7 @@ export const validate = (schema: AnyZodObject) => {
         
         next(new BadRequestError(JSON.stringify(errors)));
       } else {
+        console.log('Non-Zod error:', error);
         next(error);
       }
     }
