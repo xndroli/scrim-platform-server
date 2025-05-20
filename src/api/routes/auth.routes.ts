@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { validate } from '../middleware/validate.middleware';
 import { authValidators } from '../validators/auth.validators';
@@ -7,14 +7,37 @@ import { authMiddleware } from '../middleware/auth.middleware';
 const router = Router();
 const authController = new AuthController();
 
-// Public routes
-router.post('/register', validate(authValidators.register), (req, res, next) => {
-  authController.register(req, res, next);
-});
+// Body existence check middleware
+const checkRequestBody = (req: Request, res: Response, next: NextFunction): void => {
+  console.log('Request body in checkRequestBody:', req.body);
+  
+  if (!req.body || Object.keys(req.body).length === 0) {
+    console.error('Body parsing failed - request body is empty or undefined');
+    res.status(400).json({
+      status: 'error', 
+      message: 'Missing or empty request body'
+    });
+    return;
+  }
+  next();
+};
 
-router.post('/login', validate(authValidators.login), (req, res, next) => {
-  authController.login(req, res, next);
-});
+// Public routes with body check middleware
+router.post('/register', 
+  checkRequestBody,
+  validate(authValidators.register), 
+  (req, res, next) => {
+    authController.register(req, res, next);
+  }
+);
+
+router.post('/login', 
+  checkRequestBody,
+  validate(authValidators.login), 
+  (req, res, next) => {
+    authController.login(req, res, next);
+  }
+);
 
 // Protected routes
 router.get('/me', authMiddleware, (req, res, next) => {
