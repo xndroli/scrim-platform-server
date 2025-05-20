@@ -12,15 +12,17 @@ const app = express();
 app.use(helmet());
 app.use(cors({
   origin: config.CORS_ORIGIN,
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Cookie parsing
+app.use(cookieParser());
 
 // Body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Cookie parsing
-app.use(cookieParser());
 
 // API routes
 app.use('/api', routes);

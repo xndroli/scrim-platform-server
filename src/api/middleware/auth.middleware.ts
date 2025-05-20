@@ -21,6 +21,8 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   
   // Use token from cookie or header
   const token = cookieToken || headerToken;
+
+  console.log('Token found:', token ? 'Yes' : 'No');
   
   if (!token) {
     throw new UnauthorizedError('Authentication required');
