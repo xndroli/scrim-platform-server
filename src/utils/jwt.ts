@@ -2,13 +2,13 @@
 import jwt from 'jsonwebtoken';
 import { config } from '../config/environment';
 
-interface TokenPayload {
+export interface TokenPayload {
   userId: number;
   username?: string;
   role?: string;
 }
 
-interface RefreshTokenPayload {
+export interface RefreshTokenPayload {
   userId: number;
   version?: number; // Optional version field for token invalidation
 }
