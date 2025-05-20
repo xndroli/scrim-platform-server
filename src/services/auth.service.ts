@@ -125,7 +125,7 @@ export const authService = {
     
     // Create reset link - get base URL from config or use fallback
     const baseUrl = config.NODE_ENV === 'production' 
-      ? process.env.CLIENT_URL || 'https://your-app-url.com' 
+      ? process.env.CLIENT_URL || 'https://raijinascendancy.com' 
       : 'http://localhost:3000';
     
     const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
