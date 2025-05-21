@@ -1,43 +1,42 @@
+// src/api/middleware/auth.middleware.ts
 import { Request, Response, NextFunction } from 'express';
-import { UnauthorizedError } from '../../utils/errors';
-import { verifyToken, TokenPayload } from '../../utils/jwt';
+import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
+import { db } from '../../db';
+import { users } from '../../db/schema';
+import { eq } from 'drizzle-orm';
 
-// Extend Express Request interface
-declare global {
-  namespace Express {
-    interface Request {
-      user?: TokenPayload;
-    }
+declare module 'express' {
+  interface Request {
+    auth: {
+      userId: string;
+    };
   }
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  // Get token from cookie first
-  const cookieToken = req.cookies['auth-token'];
-  
-  // Then try to get from Authorization header as fallback
-  const authHeader = req.headers.authorization;
-  const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-  
-  // Use token from cookie or header
-  const token = cookieToken || headerToken;
+// Clerk middleware for authentication
+export const requireAuth = ClerkExpressWithAuth();
 
-  console.log('Token found:', token ? 'Yes' : 'No');
+// Middleware to attach user to request
+export async function attachUser(req: Request, res: Response, next: NextFunction) {
+  if (!req.auth || !req.auth.userId) {
+    return next();
+  }
   
-  if (!token) {
-    throw new UnauthorizedError('Authentication required');
-  };
-  
-  // Verify token
-  const decoded = verifyToken(token);
-  
-  if (!decoded) {
-    throw new UnauthorizedError('Invalid or expired token');
-  };
-
-  // Attach user info to request
-  req.user = decoded;
-  
-  // Continue to next middleware/route handler
-  next();
-}
+  try {
+    // Find user in our database
+    const [user] = await db.select()
+      .from(users)
+      .where(eq(users.clerkId, req.auth.userId))
+      .limit(1);
+    
+    if (user) {
+      // Attach user to request
+      (req as any).user = user;
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    next();
+  }
+};

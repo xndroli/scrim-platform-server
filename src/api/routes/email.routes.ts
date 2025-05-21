@@ -1,7 +1,6 @@
 // src/api/routes/webhook.routes.ts
-import { Router } from 'express';
-import { WebhookController } from '../controllers/webhook.controller';
-import express from 'express';
+import express, { Router } from 'express';
+import { WebhookController } from '../controllers/email.controller';
 
 const router = Router();
 const webhookController = new WebhookController();

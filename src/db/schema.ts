@@ -1,33 +1,36 @@
 // src/db/schema.ts
-import { pgTable, serial, text, timestamp, integer, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, integer, timestamp, varchar, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Users table
+// Users table (synced with Clerk)
 export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  username: varchar('username', { length: 50 }).notNull().unique(),
-  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
-  profileImage: text('profile_image'),
+  id: uuid('id').primaryKey(), // Maps to Clerk user ID
+  email: varchar('email', { length: 255 }).notNull(),
+  username: varchar('username', { length: 50 }).notNull(),
+  clerkId: varchar('clerk_id', { length: 255 }).notNull().unique(), // Store Clerk's user ID
+  firstName: varchar('first_name', { length: 255 }),
+  lastName: varchar('last_name', { length: 255 }),
+  profileImageUrl: text('profile_image_url'),
+  lastSignIn: timestamp('last_sign_in'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Teams table
 export const teams = pgTable('teams', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   name: varchar('name', { length: 100 }).notNull(),
   logo: text('logo'),
-  ownerId: integer('owner_id').references(() => users.id).notNull(),
+  ownerId: uuid('owner_id').references(() => users.id).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 // Team members
 export const teamMembers = pgTable('team_members', {
-  id: serial('id').primaryKey(),
-  teamId: integer('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
-  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   role: varchar('role', { length: 20 }).default('player').notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
 }, (table) => {
@@ -38,11 +41,11 @@ export const teamMembers = pgTable('team_members', {
 
 // Scrims table
 export const scrims = pgTable('scrims', {
-  id: serial('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   title: varchar('title', { length: 100 }).notNull(),
   game: varchar('game', { length: 50 }).notNull(),
   scheduledAt: timestamp('scheduled_at').notNull(),
-  creatorId: integer('creator_id').references(() => users.id).notNull(),
+  creatorId: uuid('creator_id').references(() => users.id).notNull(),
   status: varchar('status', { length: 20 }).default('scheduled').notNull(),
   maxTeams: integer('max_teams').default(20).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -51,9 +54,9 @@ export const scrims = pgTable('scrims', {
 
 // Scrim participants
 export const scrimParticipants = pgTable('scrim_participants', {
-  id: serial('id').primaryKey(),
-  scrimId: integer('scrim_id').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
-  teamId: integer('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  scrimId: uuid('scrim_id').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
+  teamId: uuid('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
   status: varchar('status', { length: 20 }).default('confirmed').notNull(),
 }, (table) => {
@@ -64,8 +67,8 @@ export const scrimParticipants = pgTable('scrim_participants', {
 
 // Matches table
 export const matches = pgTable('matches', {
-  id: serial('id').primaryKey(),
-  scrimId: integer('scrim_id').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  scrimId: uuid('scrim_id').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
   mapName: varchar('map_name', { length: 100 }),
   startTime: timestamp('start_time'),
   endTime: timestamp('end_time'),
@@ -74,9 +77,9 @@ export const matches = pgTable('matches', {
 
 // Match results
 export const matchResults = pgTable('match_results', {
-  id: serial('id').primaryKey(),
-  matchId: integer('match_id').references(() => matches.id, { onDelete: 'cascade' }).notNull(),
-  teamId: integer('team_id').notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  matchId: uuid('match_id').references(() => matches.id, { onDelete: 'cascade' }).notNull(),
+  teamId: uuid('team_id').references(() => teams.id).notNull(),
   placement: integer('placement').notNull(),
   score: integer('score').default(0).notNull(),
 }, (table) => {
@@ -87,9 +90,9 @@ export const matchResults = pgTable('match_results', {
 
 // Player match stats
 export const playerMatchStats = pgTable('player_match_stats', {
-  id: serial('id').primaryKey(),
-  matchId: integer('match_id').references(() => matches.id, { onDelete: 'cascade' }).notNull(),
-  userId: integer('user_id').notNull(),
+  id: uuid('id').primaryKey().defaultRandom(),
+  matchId: uuid('match_id').references(() => matches.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id).notNull(),
   kills: integer('kills').default(0).notNull(),
   deaths: integer('deaths').default(0).notNull(),
   assists: integer('assists').default(0).notNull(),
