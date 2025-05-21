@@ -9,9 +9,9 @@ export const validate = (schema: AnyZodObject) => {
     console.log('Schema structure:', schema);
     
     try {
-      // Validate request against schema
+      // Validate request against schema with fallback for undefined body
       await schema.parseAsync({
-        body: req.body,
+        body: req.body || {},
         query: req.query,
         params: req.params,
       });
