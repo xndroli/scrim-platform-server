@@ -46,7 +46,10 @@ router.post('/refresh-token',
   });
 
 // Logout route
-router.post('/logout', authController.logout.bind(authController));
+router.post('/logout', 
+  (req, res, next) => {
+    authController.logout(req, res, next)
+});
 
 // Protected routes
 router.get('/me', authMiddleware, (req, res, next) => {

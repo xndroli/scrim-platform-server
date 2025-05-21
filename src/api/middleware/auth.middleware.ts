@@ -34,4 +34,10 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   if (!decoded) {
     throw new UnauthorizedError('Invalid or expired token');
   };
+
+  // Attach user info to request
+  req.user = decoded;
+  
+  // Continue to next middleware/route handler
+  next();
 }

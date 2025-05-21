@@ -235,7 +235,7 @@ export class AuthController {
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
       // Clear cookies
-      res.clearCookie('auth-token', { path: '/' });
+      res.clearCookie('auth-token', cookieOptions);
       res.clearCookie('refresh-token', { path: '/api/auth/refresh-token' });
       
       res.status(200).json({
