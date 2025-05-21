@@ -42,7 +42,7 @@ router.post('/login',
 // Token refresh route - no auth required, uses refresh token from cookie
 router.post('/refresh-token', 
   (req, res, next) => {
-    authController.refreshToken.bind(authController);
+    authController.refreshToken(req, res, next);
   });
 
 // Logout route
