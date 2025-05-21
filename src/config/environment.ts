@@ -24,6 +24,7 @@ const envSchema = z.object({
 
   // CORS Configuration
   CORS_ORIGIN: z.string().default('*'),
+  CORS_ORIGIN_1: z.string().default('*'),
 
   // Upstash Redis Configuration
   UPSTASH_REDIS_URL: z.string().optional(),
