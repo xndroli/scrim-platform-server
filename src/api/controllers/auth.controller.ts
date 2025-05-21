@@ -9,8 +9,8 @@ import { generateToken, generateRefreshToken, verifyRefreshToken } from '../../u
 // Cookie configuration
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production', // Use secure in production
-  sameSite: 'strict' as const,
+  secure: true, // Always use secure in production
+  sameSite: 'none' as const,
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   path: '/'
 };
