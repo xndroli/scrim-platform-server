@@ -1,17 +1,11 @@
 // src/api/routes/auth.routes.ts
 import { Router } from 'express';
-import { AuthController } from '../controllers/auth.controller';
-import { verifyClerkSession } from '../middleware/clerk.middleware';
+import { toNodeHandler } from "better-auth/node"
+import { auth } from "../../lib/auth"
 
 const router = Router();
-const authController = new AuthController();
 
-// Clerk webhook handler
-router.post('/webhook', authController.handleClerkWebhook);
-
-// Protected routes that require Clerk session
-router.use(verifyClerkSession);
-router.get('/me', authController.getCurrentUser);
-router.post('/sync-apex', authController.syncApexStats);
+// Handle all Better-auth routes
+router.use('/*splat', toNodeHandler(auth));
 
 export default router;

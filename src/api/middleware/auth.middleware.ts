@@ -1,42 +1,93 @@
-// src/api/middleware/auth.middleware.ts
+// src/api/middleware/auth.middleware.ts - Updated for Better-auth
 import { Request, Response, NextFunction } from 'express';
-import { ClerkExpressWithAuth } from '@clerk/clerk-sdk-node';
-import { db } from '../../db';
-import { users } from '../../db/schema';
-import { eq } from 'drizzle-orm';
+import { auth } from '../../lib/auth';
 
-declare module 'express' {
-  interface Request {
-    auth: {
-      userId: string;
-    };
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        name: string;
+        email: string;
+        role?: string | null;
+        emailVerified: boolean;
+        twoFactorEnabled: boolean;
+      };
+      session?: {
+        id: string;
+        userId: string;
+        expiresAt: Date;
+      };
+    }
   }
 }
 
-// Clerk middleware for authentication
-export const requireAuth = ClerkExpressWithAuth();
-
-// Middleware to attach user to request
-export async function attachUser(req: Request, res: Response, next: NextFunction) {
-  if (!req.auth || !req.auth.userId) {
-    return next();
-  }
-  
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Find user in our database
-    const [user] = await db.select()
-      .from(users)
-      .where(eq(users.clerkId, req.auth.userId))
-      .limit(1);
-    
-    if (user) {
-      // Attach user to request
-      (req as any).user = user;
+    // Get session from Better-auth
+    const session = await auth.api.getSession({
+      headers: req.headers as any,
+    });
+
+    if (!session) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication required',
+      });
     }
+
+    // Attach user and session info to request
+    req.user = session.user as Express.Request['user'];;
+    req.session = session.session;
     
     next();
   } catch (error) {
-    console.error('Error fetching user:', error);
-    next();
+    return res.status(401).json({
+      status: 'error',
+      message: 'Invalid session',
+    });
   }
+};
+
+// Role-based middleware
+export const requireRole = (requiredRole: string) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Authentication required',
+      });
+    }
+
+    if (req.user.role !== requiredRole && req.user.role !== 'admin') {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Insufficient permissions',
+      });
+    }
+
+    next();
+  };
+};
+
+// Admin middleware
+export const requireAdmin = requireRole('admin');
+
+// Email verification middleware
+export const requireEmailVerification = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Authentication required',
+    });
+  }
+
+  if (!req.user.emailVerified) {
+    return res.status(403).json({
+      status: 'error',
+      message: 'Email verification required',
+    });
+  }
+
+  next();
 };

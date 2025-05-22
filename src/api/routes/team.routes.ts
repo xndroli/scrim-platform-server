@@ -2,13 +2,14 @@ import { Router } from 'express';
 import { TeamController } from '../controllers/team.controller';
 import { validate } from '../middleware/validate.middleware';
 import { teamValidators } from '../validators/team.validators';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, requireEmailVerification  } from '../middleware/auth.middleware';
 
 const router = Router();
 const teamController = new TeamController();
 
 // Apply authentication middleware to all routes
 router.use(authMiddleware);
+router.use(requireEmailVerification); // Require email verification
 
 // Team routes
 router.post('/', validate(teamValidators.createTeam), (req, res, next) => {
