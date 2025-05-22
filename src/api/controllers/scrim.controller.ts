@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db';
-import { scrims, scrimParticipants, teams, teamMembers, matches, matchResults, playerMatchStats, users } from '../../db/schema';
+import { scrims, scrimParticipants, teams, teamMembers, matches, matchResults, playerMatchStats, users, apexStats, apexAccounts, scrimEligibility, userDiscordAccounts } from '../../db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { sendEmail, emailTemplates } from '../../utils/email';
+import { discordBot } from '../../services/discord/bot.service';
 
 export class ScrimController {
   // Create a new scrim
@@ -161,7 +162,7 @@ export class ScrimController {
     try {
       const { scrimId } = req.params;
       const { title, game, scheduledAt, status, maxTeams } = req.body;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get scrim
       const scrimResult = await db.select().from(scrims)
@@ -213,7 +214,55 @@ export class ScrimController {
     try {
       const { scrimId } = req.params;
       const { teamId } = req.body;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
+
+      // Check eligibility requirements
+      const eligibility = await db.select()
+        .from(scrimEligibility)
+        .where(eq(scrimEligibility.scrimId, parseInt(scrimId)))
+        .limit(1);
+      
+      if (eligibility[0]) {
+        // Check Discord requirement
+        if (eligibility[0].requireDiscord) {
+          const discordAccount = await db.select()
+            .from(userDiscordAccounts)
+            .where(eq(userDiscordAccounts.userId, userId))
+            .limit(1);
+          
+          if (!discordAccount[0]) {
+            return res.status(400).json({
+              status: 'error',
+              message: 'Discord account must be linked to join this scrim',
+            });
+          }
+        }
+        
+        // Check Apex requirement
+        if (eligibility[0].requireApexLink) {
+          const apexAccount = await db.select()
+            .from(apexAccounts)
+            .where(eq(apexAccounts.userId, userId))
+            .limit(1);
+          
+          if (!apexAccount[0] || !apexAccount[0].isVerified) {
+            return res.status(400).json({
+              status: 'error',
+              message: 'Verified Apex Legends account required to join this scrim',
+            });
+          }
+          
+          // Check rank requirements
+          const apexStat = await db.select()
+            .from(apexStats)
+            .where(eq(apexStats.userId, userId))
+            .limit(1);
+          
+          if (apexStat[0]) {
+
+          }
+        }
+      }
       
       // Get scrim
       const scrimResult = await db.select().from(scrims)
@@ -348,6 +397,11 @@ export class ScrimController {
           teamName: team.name,
         },
       });
+
+      // After successful join, assign Discord role and channels
+      if (eligibility[0]?.requireDiscord) {
+        await discordBot.assignTeamToVoiceChannel(userId, parseInt(teamId), parseInt(scrimId));
+      }
     } catch (error) {
       next(error);
     }
@@ -357,7 +411,7 @@ export class ScrimController {
   async leaveScrim(req: Request, res: Response, next: NextFunction) {
     try {
       const { scrimId, teamId } = req.params;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get scrim
       const scrimResult = await db.select().from(scrims)
@@ -437,7 +491,7 @@ export class ScrimController {
     try {
       const { scrimId } = req.params;
       const { mapName } = req.body;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get scrim
       const scrimResult = await db.select().from(scrims)
@@ -485,7 +539,7 @@ export class ScrimController {
     try {
       const { matchId } = req.params;
       const { results, playerStats } = req.body;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get match
       const matchResult = await db.select().from(matches)
