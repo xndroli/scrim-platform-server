@@ -68,6 +68,7 @@ export const twoFactorTable = pgTable('twoFactor', {
 });
 
 // Role-based access control tables
+
 // Role Table
 export const roleTable = pgTable('role', {
   id: text('id').primaryKey(),
@@ -85,6 +86,82 @@ export const userRole = pgTable('userRole', {
   assignedAt: timestamp('assignedAt').notNull().defaultNow(),
 }, (table) => [
   primaryKey({ name: 'pk', columns: [table.userId, table.roleId] })
+]);
+
+// Discord integration tables
+
+
+export const discordServers = pgTable('discord_servers', {
+  id: serial('id').primaryKey(),
+  guildId: varchar('guild_id', { length: 100 }).notNull().unique(),
+  guildName: varchar('guild_name', { length: 100 }).notNull(),
+  categoryId: varchar('category_id', { length: 100 }),
+  participantRoleId: varchar('participant_role_id', { length: 100 }),
+  coachRoleId: varchar('coach_role_id', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const discordChannels = pgTable('discord_channels', {
+  id: serial('id').primaryKey(),
+  scrimId: integer('scrim_id').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
+  guildId: varchar('guild_id', { length: 100 }).notNull(),
+  textChannelId: varchar('text_channel_id', { length: 100 }).notNull(),
+  voiceChannelIds: varchar('voice_channel_ids', { length: 100 }).array().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const userDiscordAccounts = pgTable('user_discord_accounts', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
+  discordId: varchar('discord_id', { length: 100 }).notNull().unique(),
+  username: varchar('username', { length: 100 }).notNull(),
+  discriminator: varchar('discriminator', { length: 10 }),
+  avatar: text('avatar'),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  tokenExpiresAt: timestamp('token_expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Apex Legends integration tables
+
+
+export const apexAccounts = pgTable('apex_accounts', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull().unique(),
+  username: varchar('username', { length: 100 }).notNull(),
+  platform: varchar('platform', { length: 20 }).notNull(), // PC, PS4, X1
+  apexUid: varchar('apex_uid', { length: 100 }).notNull(),
+  isVerified: boolean('is_verified').default(false).notNull(),
+  lastUpdated: timestamp('last_updated').defaultNow().notNull(),
+});
+
+export const apexStats = pgTable('apex_stats', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull().unique(),
+  level: integer('level').notNull(),
+  rankName: varchar('rank_name', { length: 50 }),
+  rankDivision: integer('rank_division'),
+  rankPoints: integer('rank_points').default(0),
+  totalKills: integer('total_kills').default(0),
+  totalDamage: integer('total_damage').default(0),
+  totalWins: integer('total_wins').default(0),
+  kd: numeric('kd', { precision: 4, scale: 2 }),
+  lastUpdated: timestamp('last_updated').defaultNow().notNull(),
+});
+
+// Scrim eligibility table
+
+export const scrimEligibility = pgTable('scrim_eligibility', {
+  id: serial('id').primaryKey(),
+  scrimId: integer('scrim_id').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
+  requireDiscord: boolean('require_discord').default(true).notNull(),
+  requireApexLink: boolean('require_apex_link').default(true).notNull(),
+  minLevel: integer('min_level').default(0),
+  minRank: varchar('min_rank', { length: 50 }),
+  maxRank: varchar('max_rank', { length: 50 }),
+}, (table) => [
+  uniqueIndex('scrim_eligibility_idx').on(table.scrimId),
 ]);
 
 // Gaming tables
