@@ -13,18 +13,25 @@ const envSchema = z.object({
   // Database Configuration
   DATABASE_URL: z.string().min(1),
 
-  // JWT Configuration
-  JWT_SECRET: z.string().min(1),
-  JWT_EXPIRES_IN: z.string().default('7d'),
-
-  // JWT Refresh Token Configuration (new)
-  JWT_REFRESH_SECRET: z.string().optional().default(''),
-  JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
-  JWT_THROW_ERROR: z.string().optional().default('true'),
+  // Better Auth Configuration
+  BETTER_AUTH_SECRET: z.string().min(1, 'Better Auth secret is required'),
+  BETTER_AUTH_URL: z.string().url().optional(),
 
   // CORS Configuration
   CORS_ORIGIN: z.string().default('*'),
   CORS_ORIGIN_1: z.string().default('*'),
+
+  // Discord Bot Configuration
+  DISCORD_BOT_TOKEN: z.string().min(1, 'Discord bot token is required'),
+  DISCORD_GUILD_ID: z.string().min(1, 'Discord guild ID is required'),
+  DISCORD_CLIENT_ID: z.string().min(1, 'Discord client ID is required'),
+  DISCORD_CLIENT_SECRET: z.string().min(1, 'Discord client secret is required'),
+  DISCORD_REDIRECT_URI: z.string().url().optional(),
+
+  // Apex Legends API Configuration
+  APEX_API_KEY: z.string().min(1, 'Apex Legends API key is required'),
+  APEX_API_BASE_URL: z.string().url().default('https://api.mozambiquehe.re'),
+  APEX_CURRENT_SEASON: z.string().transform(val => parseInt(val, 10)).default('20'),
 
   // Upstash Redis Configuration
   UPSTASH_REDIS_URL: z.string().optional(),
@@ -54,22 +61,49 @@ if (!env.success) {
 }
 
 // Extract the validated environment variables
-export const config = env.data as { effectiveRefreshSecret: string } & typeof env.data;
+export const config = env.data as { 
+  effectiveRefreshSecret: string;
+  DISCORD_WEBHOOK_URL?: string;
+} & typeof env.data;
 
-// Compute the effective refresh token secret (use JWT_SECRET if refresh secret is not specified)
-config.effectiveRefreshSecret = config.JWT_REFRESH_SECRET || config.JWT_SECRET;
+// Compute the effective refresh token secret
+config.effectiveRefreshSecret = config.BETTER_AUTH_SECRET || config.BETTER_AUTH_SECRET;
 
-// Helper function to check if Upstash Redis is configured
+// Helper functions
 export const isRedisConfigured = (): boolean => {
   return !!config.UPSTASH_REDIS_URL && !!config.UPSTASH_REDIS_TOKEN;
 };
 
-// Helper function to check if QStash is configured
 export const isQStashConfigured = (): boolean => {
   return !!config.QSTASH_TOKEN;
-}
+};
 
-// Helper function to check if Resend is configured
 export const isResendConfigured = (): boolean => {
   return !!config.RESEND_TOKEN && !!config.EMAIL_FROM_ADDRESS;
+};
+
+export const isDiscordConfigured = (): boolean => {
+  return !!(
+    config.DISCORD_BOT_TOKEN && 
+    config.DISCORD_GUILD_ID && 
+    config.DISCORD_CLIENT_ID && 
+    config.DISCORD_CLIENT_SECRET
+  );
+};
+
+export const isApexConfigured = (): boolean => {
+  return !!config.APEX_API_KEY;
+};
+
+// Validation functions
+export const validateDiscordConfig = (): void => {
+  if (!isDiscordConfigured()) {
+    throw new Error('Discord configuration is incomplete. Please check your environment variables.');
+  }
+};
+
+export const validateApexConfig = (): void => {
+  if (!isApexConfigured()) {
+    throw new Error('Apex Legends API configuration is incomplete. Please check your environment variables.');
+  }
 };
