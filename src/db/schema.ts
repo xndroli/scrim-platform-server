@@ -1,5 +1,5 @@
 // src/db/schema.ts
-import { pgTable, serial, text, timestamp, integer, uniqueIndex, varchar, boolean, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, integer, uniqueIndex, varchar, boolean, primaryKey, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Auth required tables
@@ -14,6 +14,24 @@ export const user = pgTable('user', {
   role: text('role').default('user'),
   profileImage: text('profileImage'),
   twoFactorEnabled: boolean('twoFactorEnabled').default(false),
+
+  // Discord Integration
+  discordId: text('discordId').unique(),
+  discordUsername: text('discordUsername'),
+  discordAvatar: text('discordAvatar'),
+  discordLinkedAt: timestamp('discordLinkedAt'),
+  
+  // Apex Legends Integration
+  apexPlayerId: text('apexPlayerId'),
+  apexPlayerName: text('apexPlayerName'),
+  apexPlatform: varchar('apexPlatform', { length: 10 }), // PC, PS4, PS5, XBOX, SWITCH
+  apexLevel: integer('apexLevel').default(0),
+  apexRankScore: integer('apexRankScore').default(0),
+  apexRankTier: varchar('apexRankTier', { length: 20 }),
+  apexLinkedAt: timestamp('apexLinkedAt'),
+  apexLastSync: timestamp('apexLastSync'),
+  apexVerified: boolean('apexVerified').default(false),
+
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
@@ -90,78 +108,63 @@ export const userRole = pgTable('userRole', {
 
 // Discord integration tables
 
-
-export const discordServers = pgTable('discord_servers', {
-  id: serial('id').primaryKey(),
-  guildId: varchar('guild_id', { length: 100 }).notNull().unique(),
-  guildName: varchar('guild_name', { length: 100 }).notNull(),
-  categoryId: varchar('category_id', { length: 100 }),
-  participantRoleId: varchar('participant_role_id', { length: 100 }),
-  coachRoleId: varchar('coach_role_id', { length: 100 }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+// Discord Guild Integration
+export const discordGuilds = pgTable('discord_guilds', {
+  id: text('id').primaryKey(), // Discord Guild ID
+  name: text('name').notNull(),
+  icon: text('icon'),
+  ownerId: text('ownerId').notNull(),
+  scrimCategoryId: text('scrimCategoryId'),
+  teamCategoryId: text('teamCategoryId'),
+  isActive: boolean('isActive').default(true),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
 
-export const discordChannels = pgTable('discord_channels', {
+// Discord Channels for Scrims
+export const discordScrimChannels = pgTable('discord_scrim_channels', {
   id: serial('id').primaryKey(),
-  scrimId: integer('scrim_id').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
-  guildId: varchar('guild_id', { length: 100 }).notNull(),
-  textChannelId: varchar('text_channel_id', { length: 100 }).notNull(),
-  voiceChannelIds: varchar('voice_channel_ids', { length: 100 }).array().notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
-
-export const userDiscordAccounts = pgTable('user_discord_accounts', {
-  id: serial('id').primaryKey(),
-  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
-  discordId: varchar('discord_id', { length: 100 }).notNull().unique(),
-  username: varchar('username', { length: 100 }).notNull(),
-  discriminator: varchar('discriminator', { length: 10 }),
-  avatar: text('avatar'),
-  accessToken: text('access_token'),
-  refreshToken: text('refresh_token'),
-  tokenExpiresAt: timestamp('token_expires_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+  scrimId: integer('scrimId').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
+  guildId: text('guildId').references(() => discordGuilds.id).notNull(),
+  textChannelId: text('textChannelId').notNull(),
+  voiceChannelIds: text('voiceChannelIds').array(), // Array of voice channel IDs
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('scrim_guild_idx').on(table.scrimId, table.guildId),
+]);
 
 // Apex Legends integration tables
 
-
-export const apexAccounts = pgTable('apex_accounts', {
+// Apex Legends Player Stats History
+export const apexPlayerStats = pgTable('apex_player_stats', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull().unique(),
-  username: varchar('username', { length: 100 }).notNull(),
-  platform: varchar('platform', { length: 20 }).notNull(), // PC, PS4, X1
-  apexUid: varchar('apex_uid', { length: 100 }).notNull(),
-  isVerified: boolean('is_verified').default(false).notNull(),
-  lastUpdated: timestamp('last_updated').defaultNow().notNull(),
-});
-
-export const apexStats = pgTable('apex_stats', {
-  id: serial('id').primaryKey(),
-  userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull().unique(),
-  level: integer('level').notNull(),
-  rankName: varchar('rank_name', { length: 50 }),
-  rankDivision: integer('rank_division'),
-  rankPoints: integer('rank_points').default(0),
-  totalKills: integer('total_kills').default(0),
-  totalDamage: integer('total_damage').default(0),
-  totalWins: integer('total_wins').default(0),
-  kd: numeric('kd', { precision: 4, scale: 2 }),
-  lastUpdated: timestamp('last_updated').defaultNow().notNull(),
-});
-
-// Scrim eligibility table
-
-export const scrimEligibility = pgTable('scrim_eligibility', {
-  id: serial('id').primaryKey(),
-  scrimId: integer('scrim_id').references(() => scrims.id, { onDelete: 'cascade' }).notNull(),
-  requireDiscord: boolean('require_discord').default(true).notNull(),
-  requireApexLink: boolean('require_apex_link').default(true).notNull(),
-  minLevel: integer('min_level').default(0),
-  minRank: varchar('min_rank', { length: 50 }),
-  maxRank: varchar('max_rank', { length: 50 }),
+  userId: text('userId').references(() => user.id, { onDelete: 'cascade' }).notNull(),
+  season: integer('season').notNull(),
+  
+  // Global Stats
+  level: integer('level').default(0),
+  kills: integer('kills').default(0),
+  damage: integer('damage').default(0),
+  matches: integer('matches').default(0),
+  wins: integer('wins').default(0),
+  top5s: integer('top5s').default(0),
+  kd: integer('kd').default(0), // Stored as integer (multiply by 100)
+  
+  // Ranked Stats
+  rankScore: integer('rankScore').default(0),
+  rankTier: varchar('rankTier', { length: 20 }),
+  rankDiv: integer('rankDiv').default(0),
+  rankedKills: integer('rankedKills').default(0),
+  rankedDamage: integer('rankedDamage').default(0),
+  rankedMatches: integer('rankedMatches').default(0),
+  rankedWins: integer('rankedWins').default(0),
+  
+  // Legend Stats (JSON)
+  legendStats: jsonb('legendStats'), // Store as JSON array
+  
+  recordedAt: timestamp('recordedAt').notNull().defaultNow(),
 }, (table) => [
-  uniqueIndex('scrim_eligibility_idx').on(table.scrimId),
+  uniqueIndex('user_season_stats_idx').on(table.userId, table.season),
 ]);
 
 // Gaming tables
@@ -172,6 +175,18 @@ export const teams = pgTable('teams', {
   name: varchar('name', { length: 100 }).notNull(),
   logo: text('logo'),
   ownerId: text('owner_id').references(() => user.id).notNull(),
+  
+  // Team Requirements
+  requireDiscord: boolean('requireDiscord').default(true),
+  requireApex: boolean('requireApex').default(true),
+  minApexLevel: integer('minApexLevel').default(1),
+  maxApexLevel: integer('maxApexLevel'),
+  allowedRankTiers: text('allowedRankTiers').array(),
+  
+  // Discord Integration
+  discordRoleId: text('discordRoleId'),
+  discordChannelId: text('discordChannelId'),
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -183,11 +198,16 @@ export const teamMembers = pgTable('team_members', {
   userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
   role: varchar('role', { length: 20 }).default('player').notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
+
+  // Apex Stats at time of joining
+  apexLevelAtJoin: integer('apexLevelAtJoin'),
+  apexRankAtJoin: varchar('apexRankAtJoin', { length: 20 }),
+
 }, (table) => [
   uniqueIndex('team_user_idx').on(table.teamId, table.userId),
 ]);
 
-// Scrims table
+// Scrims table (with Discord integration)
 export const scrims = pgTable('scrims', {
   id: serial('id').primaryKey(),
   title: varchar('title', { length: 100 }).notNull(),
@@ -196,6 +216,19 @@ export const scrims = pgTable('scrims', {
   creatorId: text('creator_id').references(() => user.id).notNull(),
   status: varchar('status', { length: 20 }).default('scheduled').notNull(),
   maxTeams: integer('max_teams').default(20).notNull(),
+  
+  // Eligibility Requirements
+  minLevel: integer('minLevel').default(1),
+  maxLevel: integer('maxLevel'),
+  minRankScore: integer('minRankScore').default(0),
+  maxRankScore: integer('maxRankScore'),
+  allowedRankTiers: text('allowedRankTiers').array(), // Array of allowed rank tiers
+  
+  // Discord Integration
+  requireDiscord: boolean('requireDiscord').default(true),
+  requireApex: boolean('requireApex').default(true),
+  discordNotified: boolean('discordNotified').default(false),
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -207,6 +240,13 @@ export const scrimParticipants = pgTable('scrim_participants', {
   teamId: integer('team_id').references(() => teams.id, { onDelete: 'cascade' }).notNull(),
   joinedAt: timestamp('joined_at').defaultNow().notNull(),
   status: varchar('status', { length: 20 }).default('confirmed').notNull(),
+  
+  // Requirements verification
+  discordVerified: boolean('discordVerified').default(false),
+  apexVerified: boolean('apexVerified').default(false),
+  eligibilityChecked: boolean('eligibilityChecked').default(false),
+  eligibilityNotes: text('eligibilityNotes'),
+  
 }, (table) => [
     uniqueIndex('scrim_team_idx').on(table.scrimId, table.teamId),
 ]);
@@ -218,6 +258,11 @@ export const matches = pgTable('matches', {
   mapName: varchar('map_name', { length: 100 }),
   startTime: timestamp('start_time'),
   endTime: timestamp('end_time'),
+  
+  // Discord Integration
+  discordNotified: boolean('discordNotified').default(false),
+  discordMessageId: text('discordMessageId'),
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -228,6 +273,12 @@ export const matchResults = pgTable('match_results', {
   teamId: integer('team_id').notNull(),
   placement: integer('placement').notNull(),
   score: integer('score').default(0).notNull(),
+  
+  // Additional Apex-specific stats
+  totalKills: integer('totalKills').default(0),
+  totalDamage: integer('totalDamage').default(0),
+  survivalTime: integer('survivalTime').default(0), // in seconds
+  
 }, (table) => [
     uniqueIndex('match_team_idx').on(table.matchId, table.teamId),
 ]);
@@ -241,6 +292,13 @@ export const playerMatchStats = pgTable('player_match_stats', {
   deaths: integer('deaths').default(0).notNull(),
   assists: integer('assists').default(0).notNull(),
   damageDealt: integer('damage_dealt').default(0).notNull(),
+  
+  // Apex-specific stats
+  legend: varchar('legend', { length: 50 }),
+  revives: integer('revives').default(0),
+  respawns: integer('respawns').default(0),
+  survivalTime: integer('survivalTime').default(0),
+  
 }, (table) => [
   uniqueIndex('match_player_idx').on(table.matchId, table.userId),
 ]);
@@ -254,6 +312,7 @@ export const usersRelations = relations(user, ({ many, one }) => ({
   createdScrims: many(scrims, { relationName: 'scrimCreator' }),
   twoFactor: one(twoFactorTable),
   userRoles: many(userRole),
+  apexStats: many(apexPlayerStats),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
@@ -274,6 +333,7 @@ export const scrimsRelations = relations(scrims, ({ one, many }) => ({
   }),
   participants: many(scrimParticipants),
   matches: many(matches),
+  discordChannels: many(discordScrimChannels),
 }));
 
 export const matchesRelations = relations(matches, ({ one, many }) => ({
@@ -300,6 +360,28 @@ export const userRoleRelations = relations(userRole, ({ one }) => ({
   }),
 }));
 
+export const apexStatsRelations = relations(apexPlayerStats, ({ one }) => ({
+  user: one(user, {
+    fields: [apexPlayerStats.userId],
+    references: [user.id],
+  }),
+}));
+
+export const discordGuildsRelations = relations(discordGuilds, ({ many }) => ({
+  scrimChannels: many(discordScrimChannels),
+}));
+
+export const discordScrimChannelsRelations = relations(discordScrimChannels, ({ one }) => ({
+  scrim: one(scrims, {
+    fields: [discordScrimChannels.scrimId],
+    references: [scrims.id],
+  }),
+  guild: one(discordGuilds, {
+    fields: [discordScrimChannels.guildId],
+    references: [discordGuilds.id],
+  }),
+}));
+
 // Export types for TypeScript
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
@@ -308,4 +390,6 @@ export type Team = typeof teams.$inferSelect;
 export type Scrim = typeof scrims.$inferSelect;
 export type MatchResult = typeof matchResults.$inferSelect;
 export type PlayerMatchStat = typeof playerMatchStats.$inferSelect;
-
+export type ApexPlayerStat = typeof apexPlayerStats.$inferSelect;
+export type DiscordGuild = typeof discordGuilds.$inferSelect;
+export type DiscordScrimChannel = typeof discordScrimChannels.$inferSelect;
