@@ -1,13 +1,13 @@
 import { db } from '../db';
-import { users } from '../db/schema';
+import { user } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 export const usersRepository = {
   async findById(id: string) {
     const result = await db
       .select()
-      .from(users)
-      .where(eq(users.id, parseInt(id, 10)))
+      .from(user)
+      .where(eq(user.id, id))
       .limit(1);
       
     return result[0] || null;
@@ -16,8 +16,8 @@ export const usersRepository = {
   async findByEmail(email: string) {
     const result = await db
       .select()
-      .from(users)
-      .where(eq(users.email, email))
+      .from(user)
+      .where(eq(user.email, email))
       .limit(1);
       
     return result[0] || null;
@@ -25,7 +25,7 @@ export const usersRepository = {
   
   async create(userData: any) {
     const result = await db
-      .insert(users)
+      .insert(user)
       .values(userData)
       .returning();
       
@@ -34,9 +34,9 @@ export const usersRepository = {
   
   async update(id: string, userData: any) {
     const result = await db
-      .update(users)
+      .update(user)
       .set(userData)
-      .where(eq(users.id, parseInt(id, 10)))
+      .where(eq(user.id, id))
       .returning();
       
     return result[0];
@@ -44,7 +44,7 @@ export const usersRepository = {
   
   async delete(id: string) {
     return await db
-      .delete(users)
-      .where(eq(users.id, parseInt(id, 10)));
+      .delete(user)
+      .where(eq(user.id, id));
   },
 };

@@ -14,7 +14,7 @@ export class OAuthController {
     
     const params = new URLSearchParams({
       client_id: config.DISCORD_CLIENT_ID,
-      redirect_uri: `${config.API_URL}/api/oauth/discord/callback`,
+      redirect_uri: `${process.env.NEXT_PUBLIC_API_URL}/api/oauth/discord/callback`,
       response_type: 'code',
       scope: 'identify guilds',
       state,
@@ -40,7 +40,7 @@ export class OAuthController {
           client_secret: config.DISCORD_CLIENT_SECRET,
           grant_type: 'authorization_code',
           code: code as string,
-          redirect_uri: `${config.API_URL}/api/oauth/discord/callback`,
+          redirect_uri: `${process.env.NEXT_PUBLIC_API_URL}/api/oauth/discord/callback`,
         }),
         {
           headers: {
@@ -87,7 +87,7 @@ export class OAuthController {
       // Add user to Discord server if bot is in server
       await this.addUserToServer(discordUser.id, access_token);
       
-      res.redirect(`${config.CLIENT_URL}/settings?discord=linked`);
+      res.redirect(`${process.env.NEXT_PUBLIC_CLIENT_URL}/settings?discord=linked`);
     } catch (error) {
       next(error);
     }

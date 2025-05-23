@@ -1,25 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db';
-import { users } from '../../db/schema';
+import { user } from '../../db/schema';
 import { eq } from 'drizzle-orm';
-import bcryptjs from 'bcryptjs';
 
 export class UserController {
   // Get current user profile
   async getProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       const userResult = await db.select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        profileImage: users.profileImage,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profileImage: user.profileImage,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       })
-      .from(users)
-      .where(eq(users.id, userId))
+      .from(user)
+      .where(eq(user.id, userId))
       .limit(1);
       
       if (userResult.length === 0) {
@@ -41,13 +40,13 @@ export class UserController {
   // Update user profile
   async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       const { username, profileImage } = req.body;
       
       // Check if user exists
-      const userExists = await db.select({ id: users.id })
-        .from(users)
-        .where(eq(users.id, userId))
+      const userExists = await db.select({ id: user.id })
+        .from(user)
+        .where(eq(user.id, userId))
         .limit(1);
       
       if (userExists.length === 0) {
@@ -59,9 +58,9 @@ export class UserController {
       
       // Check if username is already taken (if updating username)
       if (username) {
-        const userWithSameUsername = await db.select({ id: users.id })
-          .from(users)
-          .where(eq(users.username, username))
+        const userWithSameUsername = await db.select({ id: user.id })
+          .from(user)
+          .where(eq(user.username, username))
           .limit(1);
         
         if (userWithSameUsername.length > 0 && userWithSameUsername[0].id !== userId) {
@@ -77,15 +76,15 @@ export class UserController {
       if (username) updateData.username = username;
       if (profileImage) updateData.profileImage = profileImage;
       
-      const updatedUser = await db.update(users)
+      const updatedUser = await db.update(user)
         .set(updateData)
-        .where(eq(users.id, userId))
+        .where(eq(user.id, userId))
         .returning({
-          id: users.id,
-          username: users.username,
-          email: users.email,
-          profileImage: users.profileImage,
-          updatedAt: users.updatedAt,
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          profileImage: user.profileImage,
+          updatedAt: user.updatedAt,
         });
       
       res.status(200).json({
@@ -99,54 +98,54 @@ export class UserController {
   }
   
   // Change password
-  async changePassword(req: Request, res: Response, next: NextFunction) {
-    try {
-      const userId = req.user!.userId;
-      const { currentPassword, newPassword } = req.body;
+//   async changePassword(req: Request, res: Response, next: NextFunction) {
+//     try {
+//       const userId = req.user!.id;
+//       const { currentPassword, newPassword } = req.body;
       
-      // Get user with password hash
-      const userResult = await db.select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+//       // Get user with password hash
+//       const userResult = await db.select()
+//         .from(user)
+//         .where(eq(user.id, userId))
+//         .limit(1);
       
-      if (userResult.length === 0) {
-        return res.status(404).json({
-          status: 'error',
-          message: 'User not found',
-        });
-      }
+//       if (userResult.length === 0) {
+//         return res.status(404).json({
+//           status: 'error',
+//           message: 'User not found',
+//         });
+//       }
       
-      const user = userResult[0];
+//       const user = userResult[0];
       
-      // Verify current password
-      const isPasswordValid = await bcryptjs.compare(currentPassword, user.passwordHash);
+//       // Verify current password
+//       const isPasswordValid = await bcryptjs.compare(currentPassword, user.passwordHash);
       
-      if (!isPasswordValid) {
-        return res.status(401).json({
-          status: 'error',
-          message: 'Current password is incorrect',
-        });
-      }
+//       if (!isPasswordValid) {
+//         return res.status(401).json({
+//           status: 'error',
+//           message: 'Current password is incorrect',
+//         });
+//       }
       
-      // Hash new password
-      const salt = await bcryptjs.genSalt(10);
-      const newPasswordHash = await bcryptjs.hash(newPassword, salt);
+//       // Hash new password
+//       const salt = await bcryptjs.genSalt(10);
+//       const newPasswordHash = await bcryptjs.hash(newPassword, salt);
       
-      // Update password
-      await db.update(users)
-        .set({
-          passwordHash: newPasswordHash,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, userId));
+//       // Update password
+//       await db.update(user)
+//         .set({
+//           passwordHash: newPasswordHash,
+//           updatedAt: new Date(),
+//         })
+//         .where(eq(user.id, userId));
       
-      res.status(200).json({
-        status: 'success',
-        message: 'Password changed successfully',
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-}
+//       res.status(200).json({
+//         status: 'success',
+//         message: 'Password changed successfully',
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// }

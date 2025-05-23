@@ -6,6 +6,6 @@ import { auth } from "../../lib/auth"
 const router = Router();
 
 // Handle all Better-auth routes
-router.use('/*splat', toNodeHandler(auth));
+router.all('/*', toNodeHandler(auth));
 
 export default router;

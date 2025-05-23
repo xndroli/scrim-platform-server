@@ -191,25 +191,25 @@ export class ScrimController {
 
       // Discord integration - assign roles and move to voice
       try {
-        const teamMembers = await db.select()
+        const teamMemberData = await db.select()
           .from(teamMembers)
           .innerJoin(user, eq(teamMembers.userId, user.id))
           .where(eq(teamMembers.teamId, team.id));
 
         const teamNumber = participants.length + 1;
 
-        for (const member of teamMembers) {
-          if (member.users.discordId) {
+        for (const member of teamMemberData) {
+          if (member.user.discordId) {
             // Assign team roles
             await discordService.assignTeamRoles(
-              member.users.discordId,
+              member.user.discordId,
               team.id,
               member.team_members.role === 'owner' ? 'captain' : 'player'
             );
 
             // Move to team voice channel if they're in voice
             await discordService.moveToTeamVoice(
-              member.users.discordId,
+              member.user.discordId,
               teamNumber,
               scrim.id
             );
@@ -547,14 +547,14 @@ export class ScrimController {
       // Check level requirements
       if (scrim.minLevel || scrim.maxLevel) {
         for (const member of members) {
-          const level = member.users.apexLevel || 0;
+          const level = member.user.apexLevel || 0;
           if (scrim.minLevel && level < scrim.minLevel) {
             checks.level = false;
-            issues.push(`${member.users.name} is below minimum level (${level} < ${scrim.minLevel})`);
+            issues.push(`${member.user.name} is below minimum level (${level} < ${scrim.minLevel})`);
           }
           if (scrim.maxLevel && level > scrim.maxLevel) {
             checks.level = false;
-            issues.push(`${member.users.name} is above maximum level (${level} > ${scrim.maxLevel})`);
+            issues.push(`${member.user.name} is above maximum level (${level} > ${scrim.maxLevel})`);
           }
         }
       }
@@ -562,20 +562,20 @@ export class ScrimController {
       // Check rank requirements
       if (scrim.minRankScore || scrim.maxRankScore || scrim.allowedRankTiers) {
         for (const member of members) {
-          const rankScore = member.users.apexRankScore || 0;
-          const rankTier = member.users.apexRankTier || 'Unranked';
+          const rankScore = member.user.apexRankScore || 0;
+          const rankTier = member.user.apexRankTier || 'Unranked';
 
           if (scrim.minRankScore && rankScore < scrim.minRankScore) {
             checks.rank = false;
-            issues.push(`${member.users.name} is below minimum rank score`);
+            issues.push(`${member.user.name} is below minimum rank score`);
           }
           if (scrim.maxRankScore && rankScore > scrim.maxRankScore) {
             checks.rank = false;
-            issues.push(`${member.users.name} is above maximum rank score`);
+            issues.push(`${member.user.name} is above maximum rank score`);
           }
           if (scrim.allowedRankTiers && !scrim.allowedRankTiers.includes(rankTier)) {
             checks.rank = false;
-            issues.push(`${member.users.name} rank tier not allowed for this scrim`);
+            issues.push(`${member.user.name} rank tier not allowed for this scrim`);
           }
         }
       }

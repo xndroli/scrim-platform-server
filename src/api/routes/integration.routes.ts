@@ -3,14 +3,9 @@ import { Router } from 'express';
 import { IntegrationController } from '../controllers/integration.controller';
 import { validate } from '../middleware/validate.middleware';
 import { integrationValidators } from '../validators/integration.validators';
-import { authMiddleware, requireEmailVerification } from '../middleware/auth.middleware';
 
 const router = Router();
 const integrationController = new IntegrationController();
-
-// Apply authentication middleware to all routes
-router.use(authMiddleware);
-router.use(requireEmailVerification);
 
 // Discord Integration Routes
 router.post('/discord/link', 

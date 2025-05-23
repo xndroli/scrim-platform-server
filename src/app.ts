@@ -4,17 +4,21 @@ import helmet from 'helmet';
 import { config } from './config/environment';
 import { routes } from './api/routes';
 import cookieParser from 'cookie-parser';
+import { errorMiddleware } from './api/middleware/error.middleware';
 
 // Create Express app
 const app = express();
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, 
+}));
+
 app.use(cors({
   origin: [
     config.CORS_ORIGIN,
     config.CORS_ORIGIN_1,
-  ],
+  ].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -32,21 +36,21 @@ app.all('/api', routes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  res.status(200).json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(), 
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    status: 'error',
+    message: 'Route not found',
+  });
 });
 
 // Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  
-  res.status(statusCode).json({
-    status: 'error',
-    message,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
-});
+app.use(errorMiddleware);
 
 export { app };

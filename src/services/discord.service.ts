@@ -5,23 +5,23 @@ import {
   ChannelType, 
   VoiceChannel,
   TextChannel,
-  Role,
   Guild,
   GuildMember,
   EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  CategoryChannel
+  CategoryChannel,
+  ColorResolvable
 } from 'discord.js';
 import { config } from '../config/environment';
 import { db } from '../db';
-import { scrims, scrimParticipants, teams, teamMembers, user } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { scrims, user } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
 export class DiscordService {
   private client: Client;
-  private guild: Guild | null = null;
+  private guild: Guild | undefined;
 
   constructor() {
     this.client = new Client({
@@ -501,9 +501,8 @@ export class DiscordService {
   }
 
   // Utility Methods
-  private getRandomColor(): string {
-    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
-    return colors[Math.floor(Math.random() * colors.length)];
+  private getRandomColor(): ColorResolvable {
+    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
   }
 
   async getGuildMemberByUserId(userId: string): Promise<GuildMember | null> {

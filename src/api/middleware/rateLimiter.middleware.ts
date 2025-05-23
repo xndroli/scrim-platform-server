@@ -27,7 +27,7 @@ export const rateLimiterMiddleware = async (req: Request, res: Response, next: N
     }
     
     // Get client identifier (IP or user ID)
-    const identifier = req.user?.userId.toString() || req.ip;
+    const identifier = req.user?.id.toString() || req.ip;
     if (identifier === undefined) {
       throw new Error('Identifier is undefined');
     }

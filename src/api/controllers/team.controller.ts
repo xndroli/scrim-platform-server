@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db';
-import { teams, teamMembers, users } from '../../db/schema';
+import { teams, teamMembers, user } from '../../db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
 export class TeamController {
   async createTeam(req: Request, res: Response, next: NextFunction) {
     try {
       const { name, logo } = req.body;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Create team
       const newTeam = await db.insert(teams)
@@ -39,7 +39,7 @@ export class TeamController {
   
   async getTeams(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get teams user is a member of
       const userTeams = await db.select({
@@ -73,7 +73,7 @@ export class TeamController {
   async getTeam(req: Request, res: Response, next: NextFunction) {
     try {
       const { teamId } = req.params;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get team
       const teamResult = await db.select().from(teams)
@@ -122,12 +122,12 @@ export class TeamController {
       let usersData: any[] = [];
       if (userIds.length > 0) {
         usersData = await db.select({
-          id: users.id,
-          username: users.username,
-          profileImage: users.profileImage,
+          id: user.id,
+          username: user.username,
+          profileImage: user.profileImage,
         })
-        .from(users)
-        .where(inArray(users.id, userIds));
+        .from(user)
+        .where(inArray(user.id, userIds));
       }
       
       // Combine data
@@ -158,7 +158,7 @@ export class TeamController {
     try {
       const { teamId } = req.params;
       const { name, logo } = req.body;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get team
       const teamResult = await db.select().from(teams)
@@ -215,7 +215,7 @@ export class TeamController {
     try {
       const { teamId } = req.params;
       const { username, role } = req.body;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get team
       const teamResult = await db.select().from(teams)
@@ -259,11 +259,11 @@ export class TeamController {
       
       // Find user by username
       const userResult = await db.select({
-        id: users.id,
-        username: users.username,
+        id: user.id,
+        username: user.username,
       })
-      .from(users)
-      .where(eq(users.username, username))
+      .from(user)
+      .where(eq(user.username, username))
       .limit(1);
       
       if (userResult.length === 0) {
@@ -319,7 +319,7 @@ export class TeamController {
   async removeMember(req: Request, res: Response, next: NextFunction) {
     try {
       const { teamId, memberId } = req.params;
-      const userId = req.user!.userId;
+      const userId = req.user!.id;
       
       // Get team
       const teamResult = await db.select().from(teams)
