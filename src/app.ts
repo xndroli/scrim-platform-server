@@ -32,7 +32,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // API routes
-app.all('/api/{*any}', routes);
+app.use('/api', routes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
