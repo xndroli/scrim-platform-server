@@ -13,6 +13,9 @@ import {
   roleTable,
   userRole
 } from "../db/schema"
+import { sendEmail } from "../utils/email"
+
+console.log('Initializing Better-auth...');
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -32,6 +35,7 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
+      console.log('Sending password reset email to:', user.email);
       // Send password reset email using your existing email service
       await sendEmail({
         to: user.email,
@@ -57,12 +61,13 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     sendVerificationEmail: async ({ user, url }) => {
+      console.log('Sending verification email to:', user.email);
       await sendEmail({
         to: user.email,
         subject: "Verify Your Email",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h1>Welcome to Scrim Platform!</h1>
+            <h1>Welcome to Raijin E-Sports!</h1>
             <p>Hello ${user.name || user.email},</p>
             <p>Please verify your email address by clicking the link below:</p>
             <p>
@@ -79,7 +84,7 @@ export const auth = betterAuth({
 
   plugins: [
     twoFactor({
-      issuer: "Scrim Platform",
+      issuer: "Raijin Ascendancy",
       totpOptions: {
         period: 30,
         digits: 6,
@@ -127,9 +132,10 @@ export const auth = betterAuth({
     crossSubDomainCookies: {
       enabled: true,
       domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : 'localhost'
-    }
+    },
+    // Debug mode
+    debug: process.env.NODE_ENV !== 'production'
   }
 })
 
-// Import your existing email service
-import { sendEmail } from "../utils/email"
+console.log('Better-auth initialized successfully');

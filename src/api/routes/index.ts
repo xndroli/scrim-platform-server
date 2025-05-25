@@ -9,6 +9,13 @@ import integrationRoutes from './integration.routes';
 
 const router = Router();
 
+// Debug logging middleware
+router.use((req, res, next) => {
+  console.log(`API Request: ${req.method} ${req.path}`);
+  console.log(`Full URL: ${req.originalUrl}`);
+  next();
+});
+
 // Register routes
 router.use('/auth', authRoutes); // This handles /api/auth/*
 router.use('/users', userRoutes);
@@ -20,6 +27,14 @@ router.use('/integrations', integrationRoutes);
 // Health check
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Debug route to check if routes are working
+router.get('/debug', (req, res) => {
+  res.json({ 
+    message: 'API routes are working',
+    routes: ['/auth', '/users', '/teams', '/scrims', '/webhooks', '/integrations']
+  });
 });
 
 export { router as routes };
