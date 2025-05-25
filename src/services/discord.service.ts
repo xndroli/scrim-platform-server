@@ -195,6 +195,26 @@ export class DiscordService {
     await channel.send({ embeds: [embed], components: [row] });
   }
 
+  async assignUserRoles(discordId: string, userId: string) {
+  const member = await this.getGuildMemberByUserId(discordId);
+  if (member) {
+    const participantRole = this.guild?.roles.cache.find(r => r.name === 'Scrim Participant');
+    if (participantRole) {
+      await member.roles.add(participantRole);
+    }
+  }
+}
+
+async assignApexRole(discordId: string) {
+  const member = await this.getGuildMemberByUserId(discordId);
+  if (member) {
+    const apexRole = this.guild?.roles.cache.find(r => r.name === 'Apex Player');
+    if (apexRole) {
+      await member.roles.add(apexRole);
+    }
+  }
+}
+
   async assignTeamRoles(userId: string, teamId: number, role: 'player' | 'captain') {
     if (!this.guild) throw new Error('Guild not initialized');
 

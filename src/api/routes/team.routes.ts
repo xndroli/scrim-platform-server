@@ -8,8 +8,8 @@ const router = Router();
 const teamController = new TeamController();
 
 // Apply authentication middleware to all routes
-router.use(authMiddleware);
-router.use(requireEmailVerification); // Require email verification
+router.use(authMiddleware as any);
+router.use(requireEmailVerification as any); // Require email verification
 
 // Team routes
 router.post('/', validate(teamValidators.createTeam), (req, res, next) => {

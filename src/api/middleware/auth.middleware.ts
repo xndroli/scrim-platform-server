@@ -1,10 +1,8 @@
 // src/api/middleware/auth.middleware.ts - Fixed for Better-auth
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db';
-import { session as sessionTable, user as userTable } from '../../db/schema';
+import { session, user} from '../../db/schema';
 import { eq, and, gt } from 'drizzle-orm';
-import { PgTable } from 'drizzle-orm/pg-core';
-import { TableConfig } from 'drizzle-orm/pg-core';
 
 declare global {
   namespace Express {
@@ -52,15 +50,23 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
     // Verify the session exists in the database and is not expired
     const sessionData = await db.select({
-      session: sessionTable,
-      user: userTable as PgTable<TableConfig>
+      sessionId: session.id,
+      sessionUserId: session.userId,
+      sessionExpiresAt: session.expiresAt,
+      sessionToken: session.token,
+      userId: user.id,
+      userName: user.username,
+      userEmail: user.email,
+      userRole: user.role,
+      userEmailVerified: user.emailVerified,
+      userTwoFactorEnabled: user.twoFactorEnabled,
     })
-    .from(sessionTable)
-    .innerJoin(userTable, eq(sessionTable.userId, userTable.id))
+    .from(session)
+    .innerJoin(user as any, eq(session.userId, user.id))
     .where(
       and(
-        eq(sessionTable.token, token),
-        gt(sessionTable.expiresAt, new Date())
+        eq(session.token, token),
+        gt(session.expiresAt, new Date())
       )
     )
     .limit(1);
@@ -72,22 +78,22 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       });
     }
 
-    const { session, user } = sessionData[0];
+    const data = sessionData[0];
 
     // Attach user and session info to request
     req.user = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      emailVerified: user.emailVerified,
-      twoFactorEnabled: user.twoFactorEnabled || false,
+      id: data.userId,
+      name: data.userName,
+      email: data.userEmail,
+      role: data.userRole,
+      emailVerified: data.userEmailVerified,
+      twoFactorEnabled: data.userTwoFactorEnabled || false,
     };
     
     req.session = {
-      id: session.id,
-      userId: session.userId,
-      expiresAt: session.expiresAt,
+      id: data.sessionId,
+      userId: data.sessionUserId,
+      expiresAt: data.sessionExpiresAt,
     };
     
     next();

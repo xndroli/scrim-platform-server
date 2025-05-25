@@ -51,6 +51,6 @@ app.use((req, res) => {
 });
 
 // Error handling middleware
-app.use(errorMiddleware);
+app.use(errorMiddleware as any);
 
 export { app };

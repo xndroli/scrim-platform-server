@@ -436,9 +436,9 @@ export class ApexLegendsService {
         }
       });
       return true;
-    } catch (error) {
+    } catch (error: any) {
       // If it's just a player not found error, API is working
-      if (error.message.includes('not found')) {
+      if (error.message && error.message.includes('not found')) {
         return true;
       }
       return false;

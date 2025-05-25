@@ -97,56 +97,20 @@ export class UserController {
     }
   }
   
-  // Change password
-//   async changePassword(req: Request, res: Response, next: NextFunction) {
-//     try {
-//       const userId = req.user!.id;
-//       const { currentPassword, newPassword } = req.body;
+// Change password
+  async changePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      // const userId = req.user!.id;
+      // const { currentPassword, newPassword } = req.body;
       
-//       // Get user with password hash
-//       const userResult = await db.select()
-//         .from(user)
-//         .where(eq(user.id, userId))
-//         .limit(1);
-      
-//       if (userResult.length === 0) {
-//         return res.status(404).json({
-//           status: 'error',
-//           message: 'User not found',
-//         });
-//       }
-      
-//       const user = userResult[0];
-      
-//       // Verify current password
-//       const isPasswordValid = await bcryptjs.compare(currentPassword, user.passwordHash);
-      
-//       if (!isPasswordValid) {
-//         return res.status(401).json({
-//           status: 'error',
-//           message: 'Current password is incorrect',
-//         });
-//       }
-      
-//       // Hash new password
-//       const salt = await bcryptjs.genSalt(10);
-//       const newPasswordHash = await bcryptjs.hash(newPassword, salt);
-      
-//       // Update password
-//       await db.update(user)
-//         .set({
-//           passwordHash: newPasswordHash,
-//           updatedAt: new Date(),
-//         })
-//         .where(eq(user.id, userId));
-      
-//       res.status(200).json({
-//         status: 'success',
-//         message: 'Password changed successfully',
-//       });
-//     } catch (error) {
-//       next(error);
-//     }
-//   }
-// }
+      // For Better-auth, password change should be handled through auth routes
+      // This is just a placeholder that returns an appropriate response
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please use the /auth/change-password endpoint for password changes',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 };

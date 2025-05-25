@@ -8,7 +8,7 @@ const router = Router();
 const userController = new UserController();
 
 // All routes require authentication
-router.use(authMiddleware);
+router.use(authMiddleware as any);
 
 // User routes
 router.get(

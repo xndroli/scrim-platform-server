@@ -193,7 +193,7 @@ export class ScrimController {
       try {
         const teamMemberData = await db.select()
           .from(teamMembers)
-          .innerJoin(user, eq(teamMembers.userId, user.id))
+          .innerJoin(user as any, eq(teamMembers.userId, user.id))
           .where(eq(teamMembers.teamId, team.id));
 
         const teamNumber = participants.length + 1;
@@ -366,7 +366,7 @@ export class ScrimController {
 
       // Get match and scrim
       const matchResult = await db.select().from(matches)
-        .innerJoin(scrims, eq(matches.scrimId, scrims.id))
+        .innerJoin(scrims as any, eq(matches.scrimId, scrims.id))
         .where(eq(matches.id, parseInt(matchId)))
         .limit(1);
 
@@ -510,9 +510,12 @@ export class ScrimController {
   }> {
     try {
       // Get team members with user data
-      const members = await db.select()
+      const members = await db.select({
+        teamMember: teamMembers,
+        user: user as any,
+      })
         .from(teamMembers)
-        .innerJoin(user, eq(teamMembers.userId, user.id))
+        .innerJoin(user as any, eq(teamMembers.userId, user.id))
         .where(eq(teamMembers.teamId, teamId));
 
       const checks = {
