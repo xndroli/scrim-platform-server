@@ -8,8 +8,11 @@ const router = Router();
 // Debug logging
 console.log('Setting up Better-auth routes...')
 
+// Create the Better-auth handler
+const authHandler = toNodeHandler(auth);
+
 // Handle all Better-auth routes with wildcard
 // The '/*' is important to catch all sub-routes
-router.all('/auth/{*any}', toNodeHandler(auth));
+router.all('/*', authHandler);
 
 export default router;

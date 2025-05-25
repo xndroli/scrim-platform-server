@@ -1,10 +1,10 @@
 // src/lib/auth.ts
-import { betterAuth } from "better-auth"
-import { nextCookies } from "better-auth/next-js"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { twoFactor } from "better-auth/plugins/two-factor"
-import { admin } from "better-auth/plugins/admin"
-import { db } from "../db"
+import { betterAuth } from "better-auth";
+import { nextCookies } from "better-auth/next-js";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { twoFactor } from "better-auth/plugins/two-factor";
+import { admin } from "better-auth/plugins/admin";
+import { db } from "../db";
 import { 
   user, 
   session, 
@@ -13,8 +13,10 @@ import {
   twoFactorTable,
   roleTable,
   userRole
-} from "../db/schema"
-import { sendEmail } from "../utils/email"
+} from "../db/schema";
+import { sendEmail } from "../utils/email";
+import { config } from "../config/environment";
+
 
 console.log('Initializing Better-auth...');
 
@@ -34,52 +36,54 @@ export const auth = betterAuth({
   
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: false, // Disable for testing
     sendResetPassword: async ({ user, url }) => {
-      console.log('Sending password reset email to:', user.email);
-      // Send password reset email using your existing email service
-      await sendEmail({
-        to: user.email,
-        subject: "Reset Your Password",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      console.log('Password reset requested for:', user.email);
+      console.log('Reset URL:', url);
+
+      // In development, log the URL
+      if (config.NODE_ENV !== 'production') {
+        console.log('🔗 Password reset link:', url);
+        return; // Skip sending email in dev
+      }
+
+      if (config.RESEND_TOKEN) {
+        await sendEmail({
+          to: user.email,
+          subject: "Reset Your Password",
+          html: `
             <h1>Reset Your Password</h1>
-            <p>You requested to reset your password for Scrim Platform.</p>
-            <p>Please click the link below to reset your password:</p>
-            <p>
-              <a href="${url}" style="display: inline-block; background-color: #4A90E2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
-                Reset Password
-              </a>
-            </p>
-            <p>This link will expire in 30 minutes.</p>
-            <p>If you didn't request a password reset, please ignore this email.</p>
-          </div>
-        `
-      })
+            <p>Click <a href="${url}">here</a> to reset your password.</p>
+            <p>This link will expire in 1 hour.</p>
+          `
+        });
+      }
     }
   },
 
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: false, // Disable for testing
+
     sendVerificationEmail: async ({ user, url }) => {
-      console.log('Sending verification email to:', user.email);
-      await sendEmail({
-        to: user.email,
-        subject: "Verify Your Email",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      console.log('Email verification for:', user.email);
+      console.log('Verification URL:', url);
+      
+      // In development, log the URL
+      if (config.NODE_ENV !== 'production') {
+        console.log('🔗 Email verification link:', url);
+        return; // Skip sending email in dev
+      }
+      
+      if (config.RESEND_TOKEN) {
+        await sendEmail({
+          to: user.email,
+          subject: "Verify Your Email",
+          html: `
             <h1>Welcome to Raijin E-Sports!</h1>
-            <p>Hello ${user.name || user.email},</p>
-            <p>Please verify your email address by clicking the link below:</p>
-            <p>
-              <a href="${url}" style="display: inline-block; background-color: #4A90E2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">
-                Verify Email
-              </a>
-            </p>
-            <p>If you didn't create an account, please ignore this email.</p>
-          </div>
-        `
-      })
+            <p>Please verify your email by clicking <a href="${url}">here</a>.</p>
+          `
+        });
+      }
     }
   },
 
@@ -105,39 +109,59 @@ export const auth = betterAuth({
     }
   },
 
-  user: {
-    additionalFields: {
-      profileImage: {
-        type: "string",
-        required: false
-      },
-      role: {
-        type: "string",
-        required: false,
-        defaultValue: "user"
-      },
-      isEmailVerified: {
-        type: "boolean",
-        required: false,
-        defaultValue: false
-      },
-      twoFactorEnabled: {
-        type: "boolean", 
-        required: false,
-        defaultValue: false
-      }
-    }
-  },
+  // According to docs, trustedOrigins goes at root level
+  trustedOrigins: [
+    "http://localhost:3000", // Next.js dev server
+    ...(config.CORS_ORIGIN ? [config.CORS_ORIGIN] : []),
+    ...(config.CORS_ORIGIN_1 ? [config.CORS_ORIGIN_1] : [])
+  ],
 
   advanced: {
+    // Secret must be at least 32 characters
+    useSecureCookies: config.NODE_ENV === "production",
+    cookiePrefix: "better-auth",
     generateId: () => crypto.randomUUID(),
+    // According to docs, crossSubDomainCookies is a separate config
     crossSubDomainCookies: {
-      enabled: true,
-      domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : 'localhost'
-    },
-    // Debug mode
-    debug: process.env.NODE_ENV !== 'production'
-  }
-})
+      enabled: false // Disable for localhost development
+    }
+  },
+  
+  // Add the secret at root level (some versions expect it here)
+  secret: config.BETTER_AUTH_SECRET
+});
 
-console.log('Better-auth initialized successfully');
+  // user: {
+  //   additionalFields: {
+  //     profileImage: {
+  //       type: "string",
+  //       required: false
+  //     },
+  //     role: {
+  //       type: "string",
+  //       required: false,
+  //       defaultValue: "user"
+  //     },
+  //     isEmailVerified: {
+  //       type: "boolean",
+  //       required: false,
+  //       defaultValue: false
+  //     },
+  //     twoFactorEnabled: {
+  //       type: "boolean", 
+  //       required: false,
+  //       defaultValue: false
+  //     }
+  //   }
+  // },
+
+//   advanced: {
+//     generateId: () => crypto.randomUUID(),
+//     crossSubDomainCookies: {
+//       enabled: true,
+//       domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : 'localhost'
+//     },
+//     // Debug mode
+//     debug: process.env.NODE_ENV !== 'production'
+//   }
+// })

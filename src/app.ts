@@ -14,7 +14,7 @@ app.use(cookieParser());
 
 // Body parsing
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// app.use(express.urlencoded({ extended: true }));
 
 // Security middleware
 app.use(helmet({
