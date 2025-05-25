@@ -15,13 +15,25 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: [
+  origin: function(origin, callback) {
+    const allowedOrigins = [
     config.CORS_ORIGIN,
     config.CORS_ORIGIN_1,
-  ].filter(Boolean),
+  ].filter(Boolean);
+
+   // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['set-cookie']
 }));
 
 // Cookie parsing
@@ -50,7 +62,7 @@ app.get('/test', (req, res) => {
 });
 
 // API routes
-app.use('/api/', routes);
+app.use('/api', routes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

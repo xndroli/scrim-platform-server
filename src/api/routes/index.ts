@@ -17,7 +17,10 @@ router.use((req, res, next) => {
 });
 
 // Register routes
-router.use('/auth', authRoutes); // This handles /api/auth/*
+// Auth routes first and handle all /auth/* routes
+router.use('/auth', authRoutes); // This 
+
+// Other routes
 router.use('/users', userRoutes);
 router.use('/teams', teamRoutes);
 router.use('/scrims', scrimRoutes);
