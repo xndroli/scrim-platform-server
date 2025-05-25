@@ -31,10 +31,13 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   exposedHeaders: ['set-cookie']
 }));
+
+// API routes
+app.use('/api', routes);
 
 // Cookie parsing
 app.use(cookieParser());

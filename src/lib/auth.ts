@@ -1,5 +1,6 @@
 // src/lib/auth.ts
 import { betterAuth } from "better-auth"
+import { nextCookies } from "better-auth/next-js"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { twoFactor } from "better-auth/plugins/two-factor"
 import { admin } from "better-auth/plugins/admin"
@@ -91,7 +92,8 @@ export const auth = betterAuth({
         algorithm: "SHA1"
       } as any
     }),
-    admin()
+    admin(),
+    nextCookies()
   ],
 
   session: {

@@ -10,6 +10,6 @@ console.log('Setting up Better-auth routes...')
 
 // Handle all Better-auth routes with wildcard
 // The '/*' is important to catch all sub-routes
-router.all('/*', toNodeHandler(auth));
+router.all('/auth/{*any}', toNodeHandler(auth));
 
 export default router;
