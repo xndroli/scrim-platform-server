@@ -9,11 +9,19 @@ import { errorMiddleware } from './api/middleware/error.middleware';
 // Create Express app
 const app = express();
 
-// Middleware
+// Cookie parsing
+app.use(cookieParser());
+
+// Body parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, 
 }));
 
+// CORS configuration
 app.use(cors({
   origin: function(origin, callback) {
     const allowedOrigins = [
@@ -27,24 +35,15 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
   exposedHeaders: ['set-cookie']
 }));
-
-// API routes
-app.use('/api', routes);
-
-// Cookie parsing
-app.use(cookieParser());
-
-// Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -64,9 +63,6 @@ app.get('/test', (req, res) => {
   });
 });
 
-// API routes
-app.use('/api', routes);
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ 
@@ -74,6 +70,9 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(), 
   });
 });
+
+// API routes
+app.use('/api', routes);
 
 // 404 handler
 app.use((req, res) => {
