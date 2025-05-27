@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
+import { toNodeHandler, fromNodeHeaders } from "better-auth/node";
+import { auth } from './lib/auth';
+// import helmet from 'helmet';
 import { config } from './config/environment';
 import { routes } from './api/routes';
 import cookieParser from 'cookie-parser';
@@ -9,6 +11,16 @@ import { errorMiddleware } from './api/middleware/error.middleware';
 // Create Express app
 const app = express();
 
+app.all("/api/auth/*", toNodeHandler(auth)); // For ExpressJS v4
+// app.all("/api/auth/*splat", toNodeHandler(auth)); For ExpressJS v5
+
+app.get("/api/me", async (req, res) => {
+ 	const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+	return res.json(session);
+});
+
 // Cookie parsing
 app.use(cookieParser());
 
@@ -16,41 +28,17 @@ app.use(cookieParser());
 app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
 
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: false, 
-  crossOriginEmbedderPolicy: false,
-}));
+// // Security middleware
+// app.use(helmet({
+//   contentSecurityPolicy: false, 
+//   crossOriginEmbedderPolicy: false,
+// }));
 
 // CORS configuration
 app.use(cors({
-  origin: function(origin, callback) {
-    const allowedOrigins = [
-    config.CORS_ORIGIN,
-    config.CORS_ORIGIN_1,
-  ].filter(Boolean);
-
-   // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: config.CORS_ORIGIN,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'Cookie', 
-    'X-Requested-With',
-    'Accept',
-    'Origin'
-  ],
-  exposedHeaders: ['set-cookie']
 }));
 
 // Request logging middleware
