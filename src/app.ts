@@ -11,22 +11,8 @@ import { errorMiddleware } from './api/middleware/error.middleware';
 // Create Express app
 const app = express();
 
-app.all("/api/auth/*", toNodeHandler(auth)); // For ExpressJS v4
-// app.all("/api/auth/*splat", toNodeHandler(auth)); For ExpressJS v5
-
-app.get("/api/me", async (req, res) => {
- 	const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
-	return res.json(session);
-});
-
-// Cookie parsing
-app.use(cookieParser());
-
-// Body parsing
-app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
+// Trust proxy for production (Railway, Vercel, etc.)
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet({
@@ -38,7 +24,6 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:3000',
   'https://scrim-platform-client.vercel.app',
-  'https://*.vercel.app', // Allow all Vercel preview deployments
   config.CORS_ORIGIN,
   config.CORS_ORIGIN_1,
 ].filter(Boolean);
@@ -90,21 +75,21 @@ app.use(cors({
   preflightContinue: false
 }));
 
-// Handle preflight requests explicitly
-app.options('*', (req, res) => {
-  console.log('📋 Preflight request for:', req.path);
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Cookie,X-Requested-With,Accept,Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
+// Auth routes
+app.all("/api/auth/*", toNodeHandler(auth)); // For ExpressJS v4
+// app.all("/api/auth/*splat", toNodeHandler(auth)); For ExpressJS v5
+
+// Cookie parsing
+app.use(cookieParser());
+
+// Body parsing
+app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   console.log('Origin:', req.headers.origin);
-  console.log('User-Agent:', req.headers['user-agent']);
   
   if (req.method === 'POST' || req.method === 'PUT') {
     console.log('Body keys:', Object.keys(req.body || {}));
@@ -118,7 +103,8 @@ app.get('/test', (req, res) => {
     message: 'Server is running!',
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
-    origin: req.headers.origin
+    origin: req.headers.origin,
+    authMounted: true
   });
 });
 
@@ -130,7 +116,16 @@ app.get('/health', (req, res) => {
     cors: {
       allowedOrigins: allowedOrigins,
       requestOrigin: req.headers.origin
-    } 
+    },
+    auth: {
+      mounted: true,
+      endpoints: [
+        '/api/auth/sign-up/email',
+        '/api/auth/sign-in/email', 
+        '/api/auth/sign-out',
+        '/api/auth/session'
+      ]
+    }
   });
 });
 
