@@ -20,7 +20,7 @@ import { scrims, user } from '../db/schema-test';
 import { eq } from 'drizzle-orm';
 
 export class DiscordService {
-  private client: Client;
+  private client!: Client;
   private guild: Guild | undefined;
   private isInitialized = false;
 

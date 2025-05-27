@@ -55,20 +55,23 @@ export class ScrimController {
           scrim.maxTeams
         );
 
-        // Store Discord channel information
-        await db.insert(discordScrimChannels)
-          .values({
-            scrimId: scrim.id,
-            guildId: process.env.DISCORD_GUILD_ID!,
-            textChannelId: discordChannels.textChannelId,
-            voiceChannelIds: discordChannels.voiceChannelIds,
-          });
+        // Only proceed if discordChannels is defined
+        if (discordChannels) {
+          // Store Discord channel information
+          await db.insert(discordScrimChannels)
+            .values({
+              scrimId: scrim.id,
+              guildId: process.env.DISCORD_GUILD_ID!,
+              textChannelId: discordChannels.textChannelId,
+              voiceChannelIds: discordChannels.voiceChannelIds,
+            });
 
-        // Send initial Discord notification
-        await discordService.sendMatchNotification(
-          scrim.id,
-          `🎮 New scrim created: **${scrim.title}**\n📅 Scheduled: ${new Date(scrim.scheduledAt).toLocaleString()}\n🎯 Game: ${scrim.game}\n👥 Max Teams: ${scrim.maxTeams}`
-        );
+          // Send initial Discord notification
+          await discordService.sendMatchNotification(
+            scrim.id,
+            `🎮 New scrim created: **${scrim.title}**\n📅 Scheduled: ${new Date(scrim.scheduledAt).toLocaleString()}\n🎯 Game: ${scrim.game}\n👥 Max Teams: ${scrim.maxTeams}`
+          );
+        }
 
       } catch (discordError) {
         console.warn('Failed to create Discord channels:', discordError);
