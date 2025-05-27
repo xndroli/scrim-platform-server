@@ -143,11 +143,12 @@ export const auth = betterAuth({
     // Secret must be at least 32 characters
     useSecureCookies: config.NODE_ENV === "production",
     cookiePrefix: "better-auth",
-    generateId: () => crypto.randomUUID(),
-    // According to docs, crossSubDomainCookies is a separate config
     crossSubDomainCookies: {
       enabled: config.NODE_ENV === "production" // Disable for localhost development
-    }
+    },
+    database: {
+      generateId: () => crypto.randomUUID()
+    },
   },
   // Callbacks for debugging
   callbacks: {
