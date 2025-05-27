@@ -1,41 +1,30 @@
 // src/lib/auth.ts
 import { betterAuth } from "better-auth";
-import { nextCookies } from "better-auth/next-js";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { twoFactor } from "better-auth/plugins/two-factor";
+import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins/admin";
 import { db } from "../db";
-import { 
-  user, 
-  session, 
-  account, 
-  verification, 
-  twoFactorTable,
-  roleTable,
-  userRole
-} from "../db/schema";
 import { sendEmail } from "../utils/email";
 import { config } from "../config/environment";
-
-
-console.log('Initializing Better-auth...');
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
-    schema: {
-      user,
-      session,
-      account,
-      verification,
-      twoFactor: twoFactorTable,
-      role: roleTable,
-      userRole
-    }
   }),
-  
+  secret: config.BETTER_AUTH_SECRET,
+  baseURL: process.env.NODE_ENV === "production" 
+    ? process.env.NEXT_PUBLIC_API_ENDPOINT 
+    : "http://localhost:3001",
+  trustedOrigins: [
+    process.env.NODE_ENV === "production" 
+      ? process.env.CORS_ORIGIN! 
+      : "http://localhost:3000"
+  ],
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 8, // Minimum length for passwords
+    autoSignIn: true, // Automatically sign in users after registration
+    autoSignInAfterVerification: false,
     requireEmailVerification: false, // Disable for testing
     sendResetPassword: async ({ user, url }) => {
       console.log('Password reset requested for:', user.email);
@@ -63,8 +52,7 @@ export const auth = betterAuth({
 
   emailVerification: {
     sendOnSignUp: false, // Disable for testing
-
-    sendVerificationEmail: async ({ user, url }) => {
+    sendVerificationEmail: async ({ user, url, token }, request) => {
       console.log('Email verification for:', user.email);
       console.log('Verification URL:', url);
       
@@ -86,20 +74,11 @@ export const auth = betterAuth({
       }
     }
   },
-
-  plugins: [
-    twoFactor({
-      issuer: "Raijin Ascendancy",
-      totpOptions: {
-        period: 30,
-        digits: 6,
-        algorithm: "SHA1"
-      } as any
-    }),
-    admin(),
-    nextCookies()
-  ],
-
+  account: {
+    accountLinking: {
+      enabled: true, // Enable account linking
+    },
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day (refresh session daily)
@@ -108,60 +87,28 @@ export const auth = betterAuth({
       maxAge: 60 * 5 // 5 minute cache
     }
   },
-
-  // According to docs, trustedOrigins goes at root level
-  trustedOrigins: [
-    "http://localhost:3000", // Next.js dev server
-    ...(config.CORS_ORIGIN ? [config.CORS_ORIGIN] : []),
-    ...(config.CORS_ORIGIN_1 ? [config.CORS_ORIGIN_1] : [])
-  ],
-
   advanced: {
-    // Secret must be at least 32 characters
-    useSecureCookies: config.NODE_ENV === "production",
-    cookiePrefix: "better-auth",
-    generateId: () => crypto.randomUUID(),
-    // According to docs, crossSubDomainCookies is a separate config
     crossSubDomainCookies: {
-      enabled: false // Disable for localhost development
-    }
+        enabled: true,
+        domain: ".example.com", // Domain with a leading period
+    },
+    defaultCookieAttributes: {
+        secure: true,
+        httpOnly: true,
+        sameSite: "none",  // Allows CORS-based cookie sharing across subdomains
+        partitioned: true, // New browser standards will mandate this for foreign cookies
+    },
   },
-  
-  // Add the secret at root level (some versions expect it here)
-  secret: config.BETTER_AUTH_SECRET
+  plugins: [
+    // twoFactor({
+    //   issuer: "Raijin Ascendancy",
+    //   totpOptions: {
+    //     period: 30,
+    //     digits: 6,
+    //     algorithm: "SHA1"
+    //   } as any
+    // }),
+    admin(),
+    nextCookies()
+  ],
 });
-
-  // user: {
-  //   additionalFields: {
-  //     profileImage: {
-  //       type: "string",
-  //       required: false
-  //     },
-  //     role: {
-  //       type: "string",
-  //       required: false,
-  //       defaultValue: "user"
-  //     },
-  //     isEmailVerified: {
-  //       type: "boolean",
-  //       required: false,
-  //       defaultValue: false
-  //     },
-  //     twoFactorEnabled: {
-  //       type: "boolean", 
-  //       required: false,
-  //       defaultValue: false
-  //     }
-  //   }
-  // },
-
-//   advanced: {
-//     generateId: () => crypto.randomUUID(),
-//     crossSubDomainCookies: {
-//       enabled: true,
-//       domain: process.env.NODE_ENV === 'production' ? '.yourdomain.com' : 'localhost'
-//     },
-//     // Debug mode
-//     debug: process.env.NODE_ENV !== 'production'
-//   }
-// })
