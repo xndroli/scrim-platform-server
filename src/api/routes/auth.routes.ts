@@ -13,6 +13,6 @@ const authHandler = toNodeHandler(auth);
 
 // Handle all Better-auth routes with wildcard
 // The '/*' is important to catch all sub-routes
-router.all('/*any', authHandler);
+router.all('/*', authHandler);
 
 export default router;
