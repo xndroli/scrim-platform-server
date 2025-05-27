@@ -55,7 +55,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       sessionExpiresAt: session.expiresAt,
       sessionToken: session.token,
       userId: user.id,
-      userName: user.username,
+      userName: user.name,
       userEmail: user.email,
       userRole: user.role,
       userEmailVerified: user.emailVerified,

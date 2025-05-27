@@ -21,11 +21,11 @@ router.use((req, res, next) => {
 router.use('/auth', authRoutes); // This 
 
 // Other routes
-router.use('/users', userRoutes);
-router.use('/teams', teamRoutes);
-router.use('/scrims', scrimRoutes);
-router.use('/webhooks', emailRoutes);
-router.use('/integrations', integrationRoutes);
+// router.use('/users', userRoutes);
+// router.use('/teams', teamRoutes);
+// router.use('/scrims', scrimRoutes);
+// router.use('/webhooks', emailRoutes);
+// router.use('/integrations', integrationRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

@@ -10,9 +10,9 @@ import {
   session, 
   account, 
   verification, 
-  twoFactorTable,
-  roleTable,
-  userRole
+  // twoFactorTable,
+  // roleTable,
+  // userRole
 } from "../db/schema";
 import { sendEmail } from "../utils/email";
 import { config } from "../config/environment";
@@ -28,9 +28,9 @@ export const auth = betterAuth({
       session,
       account,
       verification,
-      twoFactor: twoFactorTable,
-      role: roleTable,
-      userRole
+      // twoFactor: twoFactorTable,
+      // role: roleTable,
+      // userRole
     }
   }),
   
@@ -123,7 +123,7 @@ export const auth = betterAuth({
     generateId: () => crypto.randomUUID(),
     // According to docs, crossSubDomainCookies is a separate config
     crossSubDomainCookies: {
-      enabled: false // Disable for localhost development
+      enabled: true // Disable for localhost development
     }
   },
   

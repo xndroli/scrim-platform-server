@@ -11,9 +11,8 @@ export class UserController {
       
       const userResult = await db.select({
         id: user.id,
-        username: user.username,
+        username: user.name,
         email: user.email,
-        profileImage: user.profileImage,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       })
@@ -60,7 +59,7 @@ export class UserController {
       if (username) {
         const userWithSameUsername = await db.select({ id: user.id })
           .from(user)
-          .where(eq(user.username, username))
+          .where(eq(user.name, username))
           .limit(1);
         
         if (userWithSameUsername.length > 0 && userWithSameUsername[0].id !== userId) {
@@ -81,9 +80,8 @@ export class UserController {
         .where(eq(user.id, userId))
         .returning({
           id: user.id,
-          username: user.username,
+          username: user.name,
           email: user.email,
-          profileImage: user.profileImage,
           updatedAt: user.updatedAt,
         });
       

@@ -19,6 +19,7 @@ app.use(express.json());
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, 
+  crossOriginEmbedderPolicy: false,
 }));
 
 // CORS configuration
