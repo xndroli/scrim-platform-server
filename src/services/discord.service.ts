@@ -22,22 +22,47 @@ import { eq } from 'drizzle-orm';
 export class DiscordService {
   private client: Client;
   private guild: Guild | undefined;
+  private isInitialized = false;
 
   constructor() {
+    // Only initialize if Discord is properly configured
+    if (!this.isDiscordConfigured()) {
+      console.log('⚠️  Discord not configured - Discord features disabled');
+      return;
+    }
+
     this.client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildVoiceStates,
+        // Only include these if they're enabled in Discord Developer Portal
+        ...(this.hasPrivilegedIntents() ? [
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMessages
+        ] : [])
       ],
     });
 
     this.setupEventHandlers();
   }
 
+  private isDiscordConfigured(): boolean {
+    return !!(config.DISCORD_BOT_TOKEN && config.DISCORD_GUILD_ID);
+  }
+
+  private hasPrivilegedIntents(): boolean {
+    // In production, you should have these intents enabled
+    // For development, we'll be more permissive
+    return config.NODE_ENV === 'production';
+  }
+
   async initialize() {
+    if (!this.isDiscordConfigured()) {
+      console.log('⚠️  Discord not configured - skipping initialization');
+      return;
+    }
+
     try {
       await this.client.login(config.DISCORD_BOT_TOKEN);
       console.log('✅ Discord bot logged in successfully');
@@ -48,36 +73,77 @@ export class DiscordService {
       }
       
       await this.setupGuildStructure();
-    } catch (error) {
-      console.error('❌ Discord bot initialization failed:', error);
-      throw error;
+      this.isInitialized = true;
+    } catch (error: any) {
+      console.error('❌ Discord bot initialization failed:', error.message);
+      
+      // If it's an intent error, provide helpful guidance
+      if (error.message.includes('disallowed intents')) {
+        console.log('💡 To fix this:');
+        console.log('   1. Go to https://discord.com/developers/applications');
+        console.log('   2. Select your bot application');
+        console.log('   3. Go to the "Bot" section');
+        console.log('   4. Enable "Server Members Intent" and "Message Content Intent"');
+        console.log('   5. Redeploy your application');
+      }
+      
+      // Don't throw - let the app continue without Discord features
+      this.isInitialized = false;
     }
   }
 
   private setupEventHandlers() {
+    if (!this.client) return;
+
     this.client.on('ready', () => {
       console.log(`🤖 Discord bot ready as ${this.client.user?.tag}`);
     });
 
-    this.client.on('guildMemberAdd', this.handleMemberJoin.bind(this));
-    this.client.on('voiceStateUpdate', this.handleVoiceStateUpdate.bind(this));
+    this.client.on('error', (error) => {
+      console.error('Discord client error:', error);
+    });
+
+    // Only add these handlers if we have the required intents
+    if (this.hasPrivilegedIntents()) {
+      this.client.on('guildMemberAdd', this.handleMemberJoin.bind(this));
+      this.client.on('voiceStateUpdate', this.handleVoiceStateUpdate.bind(this));
+    }
+
     this.client.on('interactionCreate', this.handleInteraction.bind(this));
   }
 
   private async setupGuildStructure() {
-    if (!this.guild) return;
+    if (!this.guild || !this.isInitialized) return;
 
     try {
       // Create scrim categories if they don't exist
       const scrimCategory = await this.findOrCreateCategory('SCRIMS');
       const teamCategory = await this.findOrCreateCategory('TEAM CHANNELS');
       
-      // Create roles
+      // Create roles (only if we have permission)
       await this.createRoles();
       
       console.log('✅ Guild structure setup complete');
     } catch (error) {
       console.error('❌ Guild structure setup failed:', error);
+    }
+  }
+
+  // Wrapper method that checks if Discord is available
+  private async executeIfAvailable<T>(
+    operation: () => Promise<T>, 
+    fallbackValue?: T
+  ): Promise<T | undefined> {
+    if (!this.isInitialized || !this.guild) {
+      console.log('⚠️  Discord operation skipped - not initialized');
+      return fallbackValue;
+    }
+
+    try {
+      return await operation();
+    } catch (error) {
+      console.error('Discord operation failed:', error);
+      return fallbackValue;
     }
   }
 
@@ -110,27 +176,29 @@ export class DiscordService {
     ];
 
     for (const roleData of rolesToCreate) {
-      const existingRole = this.guild.roles.cache.find(role => role.name === roleData.name);
-      if (!existingRole) {
-        await this.guild.roles.create({
-          name: roleData.name,
-          color: roleData.color as any,
-          permissions: roleData.permissions as any,
-          reason: 'Scrim platform role creation'
-        });
+      try {
+        const existingRole = this.guild.roles.cache.find(role => role.name === roleData.name);
+        if (!existingRole) {
+          await this.guild.roles.create({
+            name: roleData.name,
+            color: roleData.color as any,
+            permissions: roleData.permissions as any,
+            reason: 'Scrim platform role creation'
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to create role ${roleData.name}:`, error);
       }
     }
   }
 
-  // Scrim Management Methods
+  // Scrim Management Methods with fallback handling
   async createScrimChannels(scrimId: number, scrimTitle: string, maxTeams: number) {
-    if (!this.guild) throw new Error('Guild not initialized');
-
-    try {
+    return this.executeIfAvailable(async () => {
       const scrimCategory = await this.findOrCreateCategory('SCRIMS');
       
       // Create text channel for scrim coordination
-      const textChannel = await this.guild.channels.create({
+      const textChannel = await this.guild!.channels.create({
         name: `scrim-${scrimId}-${scrimTitle.toLowerCase().replace(/\s+/g, '-')}`,
         type: ChannelType.GuildText,
         parent: scrimCategory.id,
@@ -139,8 +207,8 @@ export class DiscordService {
 
       // Create voice channels for each team
       const voiceChannels = [];
-      for (let i = 1; i <= maxTeams; i++) {
-        const voiceChannel = await this.guild.channels.create({
+      for (let i = 1; i <= Math.min(maxTeams, 10); i++) { // Limit to 10 channels
+        const voiceChannel = await this.guild!.channels.create({
           name: `Team ${i} Voice`,
           type: ChannelType.GuildVoice,
           parent: scrimCategory.id,
@@ -156,10 +224,10 @@ export class DiscordService {
         textChannelId: textChannel.id,
         voiceChannelIds: voiceChannels.map(vc => vc.id),
       };
-    } catch (error) {
-      console.error('❌ Failed to create scrim channels:', error);
-      throw error;
-    }
+    }, {
+      textChannelId: '',
+      voiceChannelIds: [],
+    });
   }
 
   private async sendScrimWelcomeMessage(channel: TextChannel, scrimId: number, scrimTitle: string) {
@@ -195,99 +263,10 @@ export class DiscordService {
     await channel.send({ embeds: [embed], components: [row] });
   }
 
-  async assignUserRoles(discordId: string, userId: string) {
-  const member = await this.getGuildMemberByUserId(discordId);
-  if (member) {
-    const participantRole = this.guild?.roles.cache.find(r => r.name === 'Scrim Participant');
-    if (participantRole) {
-      await member.roles.add(participantRole);
-    }
-  }
-}
-
-async assignApexRole(discordId: string) {
-  const member = await this.getGuildMemberByUserId(discordId);
-  if (member) {
-    const apexRole = this.guild?.roles.cache.find(r => r.name === 'Apex Player');
-    if (apexRole) {
-      await member.roles.add(apexRole);
-    }
-  }
-}
-
-  async assignTeamRoles(userId: string, teamId: number, role: 'player' | 'captain') {
-    if (!this.guild) throw new Error('Guild not initialized');
-
-    try {
-      const member = await this.guild.members.fetch(userId);
-      if (!member) return;
-
-      // Remove previous team roles
-      const teamRoles = this.guild.roles.cache.filter(r => r.name.startsWith('Team-'));
-      await member.roles.remove(teamRoles);
-
-      // Add new team role
-      const teamRoleName = `Team-${teamId}`;
-      let teamRole = this.guild.roles.cache.find(r => r.name === teamRoleName);
-      
-      if (!teamRole) {
-        teamRole = await this.guild.roles.create({
-          name: teamRoleName,
-          color: this.getRandomColor(),
-          reason: `Team ${teamId} role creation`
-        });
-      }
-
-      await member.roles.add(teamRole);
-
-      // Add captain role if applicable
-      if (role === 'captain') {
-        const captainRole = this.guild.roles.cache.find(r => r.name === 'Team Captain');
-        if (captainRole) {
-          await member.roles.add(captainRole);
-        }
-      }
-
-      // Add scrim participant role
-      const participantRole = this.guild.roles.cache.find(r => r.name === 'Scrim Participant');
-      if (participantRole) {
-        await member.roles.add(participantRole);
-      }
-
-    } catch (error) {
-      console.error('❌ Failed to assign team roles:', error);
-    }
-  }
-
-  async moveToTeamVoice(userId: string, teamNumber: number, scrimId: number) {
-    if (!this.guild) throw new Error('Guild not initialized');
-
-    try {
-      const member = await this.guild.members.fetch(userId);
-      if (!member.voice.channel) return; // User not in voice
-
-      // Find the team's voice channel
-      const teamVoiceChannel = this.guild.channels.cache.find(
-        channel => 
-          channel.type === ChannelType.GuildVoice && 
-          channel.name === `Team ${teamNumber} Voice` &&
-          channel.parent?.name === 'SCRIMS'
-      ) as VoiceChannel;
-
-      if (teamVoiceChannel) {
-        await member.voice.setChannel(teamVoiceChannel);
-      }
-    } catch (error) {
-      console.error('❌ Failed to move user to team voice:', error);
-    }
-  }
-
   async sendMatchNotification(scrimId: number, message: string, mentionRoles: string[] = []) {
-    if (!this.guild) return;
-
-    try {
+    return this.executeIfAvailable(async () => {
       // Find scrim text channel
-      const scrimChannel = this.guild.channels.cache.find(
+      const scrimChannel = this.guild!.channels.cache.find(
         channel => 
           channel.type === ChannelType.GuildText && 
           channel.name.includes(`scrim-${scrimId}`)
@@ -307,16 +286,12 @@ async assignApexRole(discordId: string) {
         content: mentions || undefined, 
         embeds: [embed] 
       });
-    } catch (error) {
-      console.error('❌ Failed to send match notification:', error);
-    }
+    });
   }
 
   async updateScrimStatus(scrimId: number, status: string, additionalInfo?: string) {
-    if (!this.guild) return;
-
-    try {
-      const scrimChannel = this.guild.channels.cache.find(
+    return this.executeIfAvailable(async () => {
+      const scrimChannel = this.guild!.channels.cache.find(
         channel => 
           channel.type === ChannelType.GuildText && 
           channel.name.includes(`scrim-${scrimId}`)
@@ -338,17 +313,101 @@ async assignApexRole(discordId: string) {
       }
 
       await scrimChannel.send({ embeds: [embed] });
-    } catch (error) {
-      console.error('❌ Failed to update scrim status:', error);
-    }
+    });
+  }
+
+  async assignUserRoles(discordId: string, userId: string) {
+    return this.executeIfAvailable(async () => {
+      const member = await this.getGuildMemberByUserId(discordId);
+      if (member) {
+        const participantRole = this.guild?.roles.cache.find(r => r.name === 'Scrim Participant');
+        if (participantRole) {
+          await member.roles.add(participantRole);
+        }
+      }
+    });
+  }
+
+  async assignApexRole(discordId: string) {
+    return this.executeIfAvailable(async () => {
+      const member = await this.getGuildMemberByUserId(discordId);
+      if (member) {
+        const apexRole = this.guild?.roles.cache.find(r => r.name === 'Apex Player');
+        if (apexRole) {
+          await member.roles.add(apexRole);
+        }
+      }
+    });
+  }
+
+  async assignTeamRoles(userId: string, teamId: number, role: 'player' | 'captain') {
+    return this.executeIfAvailable(async () => {
+      const member = await this.guild!.members.fetch(userId);
+      if (!member) return;
+
+      // Remove previous team roles
+      const teamRoles = this.guild!.roles.cache.filter(r => r.name.startsWith('Team-'));
+      await member.roles.remove(teamRoles);
+
+      // Add new team role
+      const teamRoleName = `Team-${teamId}`;
+      let teamRole = this.guild!.roles.cache.find(r => r.name === teamRoleName);
+      
+      if (!teamRole) {
+        teamRole = await this.guild!.roles.create({
+          name: teamRoleName,
+          color: this.getRandomColor(),
+          reason: `Team ${teamId} role creation`
+        });
+      }
+
+      await member.roles.add(teamRole);
+
+      // Add captain role if applicable
+      if (role === 'captain') {
+        const captainRole = this.guild!.roles.cache.find(r => r.name === 'Team Captain');
+        if (captainRole) {
+          await member.roles.add(captainRole);
+        }
+      }
+
+      // Add scrim participant role
+      const participantRole = this.guild!.roles.cache.find(r => r.name === 'Scrim Participant');
+      if (participantRole) {
+        await member.roles.add(participantRole);
+      }
+    });
+  }
+
+  async moveToTeamVoice(userId: string, teamNumber: number, scrimId: number) {
+    return this.executeIfAvailable(async () => {
+      if (!this.guild) throw new Error('Guild not initialized');
+
+      try {
+        const member = await this.guild.members.fetch(userId);
+        if (!member.voice.channel) return; // User not in voice
+
+        // Find the team's voice channel
+        const teamVoiceChannel = this.guild.channels.cache.find(
+          channel => 
+            channel.type === ChannelType.GuildVoice && 
+            channel.name === `Team ${teamNumber} Voice` &&
+            channel.parent?.name === 'SCRIMS'
+        ) as VoiceChannel;
+
+        if (teamVoiceChannel) {
+          await member.voice.setChannel(teamVoiceChannel);
+        }
+      } catch (error) {
+        console.error('❌ Failed to move user to team voice:', error);
+      }
+    })
   }
 
   async cleanupScrimChannels(scrimId: number) {
-    if (!this.guild) return;
-
-    try {
+    return this.executeIfAvailable(async () => {
       // Find and delete scrim channels
-      const channelsToDelete = this.guild.channels.cache.filter(
+      const channelsToDelete = this.guild!.channels.cache.filter(
         channel => channel.name.includes(`scrim-${scrimId}`)
       );
 
@@ -358,9 +417,7 @@ async assignApexRole(discordId: string) {
 
       // Clean up team roles if no other scrims are using them
       await this.cleanupUnusedTeamRoles();
-    } catch (error) {
-      console.error('❌ Failed to cleanup scrim channels:', error);
-    }
+    });
   }
 
   private async cleanupUnusedTeamRoles() {
@@ -521,18 +578,18 @@ async assignApexRole(discordId: string) {
   }
 
   // Utility Methods
-  private getRandomColor(): ColorResolvable {
-    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-  }
-
   async getGuildMemberByUserId(userId: string): Promise<GuildMember | null> {
-    if (!this.guild) return null;
+    if (!this.guild || !this.isInitialized) return null;
     
     try {
       return await this.guild.members.fetch(userId);
     } catch {
       return null;
     }
+  }
+
+  private getRandomColor(): ColorResolvable {
+    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
   }
 }
 

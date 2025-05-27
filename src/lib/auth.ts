@@ -1,6 +1,6 @@
 // src/lib/auth.ts
 import { betterAuth } from "better-auth";
-import { nextCookies } from "better-auth/next-js";
+// import { nextCookies } from "better-auth/next-js";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { twoFactor } from "better-auth/plugins/two-factor";
 import { admin } from "better-auth/plugins/admin";
@@ -17,8 +17,10 @@ import {
 import { sendEmail } from "../utils/email";
 import { config } from "../config/environment";
 
-
-console.log('Initializing Better-auth...');
+console.log('🔧 Initializing Better-auth...');
+console.log('🔧 Database URL configured:', !!config.DATABASE_URL);
+console.log('🔧 Auth secret configured:', !!config.BETTER_AUTH_SECRET);
+console.log('🔧 Environment:', config.NODE_ENV);
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -38,51 +40,66 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false, // Disable for testing
     sendResetPassword: async ({ user, url }) => {
-      console.log('Password reset requested for:', user.email);
-      console.log('Reset URL:', url);
+      console.log('📧 Password reset requested for:', user.email);
+      console.log('🔗 Reset URL:', url);
 
       // In development, log the URL
       if (config.NODE_ENV !== 'production') {
-        console.log('🔗 Password reset link:', url);
+        console.log('🔗 Password reset link (DEV):', url);
         return; // Skip sending email in dev
       }
 
-      if (config.RESEND_TOKEN) {
-        await sendEmail({
-          to: user.email,
-          subject: "Reset Your Password",
-          html: `
-            <h1>Reset Your Password</h1>
-            <p>Click <a href="${url}">here</a> to reset your password.</p>
-            <p>This link will expire in 1 hour.</p>
-          `
-        });
+      // In production, send email if configured
+      if (config.RESEND_TOKEN && config.EMAIL_FROM_ADDRESS) {
+        try {
+          await sendEmail({
+            to: user.email,
+            subject: "Reset Your Password",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1>Reset Your Password</h1>
+                <p>Hello ${user.name},</p>
+                <p>Click the link below to reset your password:</p>
+                <p><a href="${url}" style="background-color: #4A90E2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset Password</a></p>
+                <p>This link will expire in 1 hour.</p>
+                <p>If you didn't request this, please ignore this email.</p>
+              </div>
+            `
+          });
+          console.log('✅ Password reset email sent to:', user.email);
+        } catch (error) {
+          console.error('❌ Failed to send password reset email:', error);
+        }
       }
     }
   },
 
   emailVerification: {
     sendOnSignUp: false, // Disable for testing
-
     sendVerificationEmail: async ({ user, url }) => {
-      console.log('Email verification for:', user.email);
-      console.log('Verification URL:', url);
+      console.log('📧 Email verification for:', user.email);
+      console.log('🔗 Verification URL:', url);
       
-      // In development, log the URL
-      if (config.NODE_ENV !== 'production') {
-        console.log('🔗 Email verification link:', url);
-        return; // Skip sending email in dev
-      }
-      
-      if (config.RESEND_TOKEN) {
-        await sendEmail({
-          to: user.email,
-          subject: "Verify Your Email",
-          html: `
-            <h1>Welcome to Raijin E-Sports!</h1>
-            <p>Please verify your email by clicking <a href="${url}">here</a>.</p>
-          `
-        });
+      // In production, send email if configured
+      if (config.RESEND_TOKEN && config.EMAIL_FROM_ADDRESS) {
+        try {
+          await sendEmail({
+            to: user.email,
+            subject: "Verify Your Email - Raijin Ascendancy",
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h1>Welcome to Raijin Ascendancy!</h1>
+                <p>Hello ${user.name},</p>
+                <p>Please verify your email by clicking the link below:</p>
+                <p><a href="${url}" style="background-color: #4A90E2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Verify Email</a></p>
+                <p>This link will expire in 24 hours.</p>
+              </div>
+            `
+          });
+          console.log('✅ Verification email sent to:', user.email);
+        } catch (error) {
+          console.error('❌ Failed to send verification email:', error);
+        }
       }
     }
   },
@@ -97,7 +114,7 @@ export const auth = betterAuth({
       } as any
     }),
     admin(),
-    nextCookies()
+    // nextCookies()
   ],
 
   session: {
@@ -123,13 +140,32 @@ export const auth = betterAuth({
     generateId: () => crypto.randomUUID(),
     // According to docs, crossSubDomainCookies is a separate config
     crossSubDomainCookies: {
-      enabled: true // Disable for localhost development
+      enabled: config.NODE_ENV === "production" // Disable for localhost development
     }
   },
   
-  // Add the secret at root level (some versions expect it here)
-  secret: config.BETTER_AUTH_SECRET
+  // Secret key (must be at least 32 characters)
+  secret: config.BETTER_AUTH_SECRET,
+
+  // Base URL for redirects and callbacks
+  baseURL: config.NODE_ENV === 'production' 
+    ? process.env.API_BASE_URL || 'https://raijinascendancy.com'
+    : 'http://localhost:3001',
+
+  // Callbacks for debugging
+  callbacks: {
+    async signIn({ user, session }: any) {
+      console.log('✅ User signed in:', user.email);
+      return true;
+    },
+    async signUp({ user }: any) {
+      console.log('✅ User signed up:', user.email);
+      return true;
+    }
+  }
 });
+
+console.log('✅ Better-auth initialized successfully');
 
   // user: {
   //   additionalFields: {
