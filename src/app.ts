@@ -14,6 +14,9 @@ const app = express();
 // Trust proxy for production (Railway, Vercel, etc.)
 app.set('trust proxy', 1);
 
+// Cookie parsing
+app.use(cookieParser());
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, 
@@ -79,12 +82,8 @@ app.use(cors({
 app.all("/api/auth/*", toNodeHandler(auth)); // For ExpressJS v4
 // app.all("/api/auth/*splat", toNodeHandler(auth)); For ExpressJS v5
 
-// Cookie parsing
-app.use(cookieParser());
-
-// Body parsing
+// JSON middleware
 app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
 
 // Request logging middleware
 app.use((req, res, next) => {

@@ -134,7 +134,7 @@ export const auth = betterAuth({
   // According to docs, trustedOrigins goes at root level
   trustedOrigins: [
     "http://localhost:3000", 
-    "http://localhost:3001", 
+    "https://scrim-platform-client.vercel.app",
     config.CORS_ORIGIN,
     config.CORS_ORIGIN_1
   ].filter(Boolean),
@@ -144,7 +144,7 @@ export const auth = betterAuth({
     useSecureCookies: config.NODE_ENV === "production",
     cookiePrefix: "better-auth",
     crossSubDomainCookies: {
-      enabled: config.NODE_ENV === "production" // Disable for localhost development
+      enabled: config.NODE_ENV === "production" // Enable only in production
     },
     database: {
       generateId: () => crypto.randomUUID()
