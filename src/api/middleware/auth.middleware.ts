@@ -12,7 +12,7 @@ declare global {
         email: string;
         role?: string | null;
         emailVerified: boolean;
-        twoFactorEnabled: boolean;
+        // twoFactorEnabled: boolean;
       };
       session?: {
         id: string;
@@ -44,7 +44,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       email: session.user.email,
       role: session.user.role,
       emailVerified: session.user.emailVerified,
-      twoFactorEnabled: session.user.twoFactorEnabled ?? false,
+      // twoFactorEnabled: session.user.twoFactorEnabled ?? false,
     };
     
     req.session = {
