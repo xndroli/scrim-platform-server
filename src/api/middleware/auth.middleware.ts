@@ -1,8 +1,7 @@
 // src/api/middleware/auth.middleware.ts - Fixed for Better-auth
 import { Request, Response, NextFunction } from 'express';
-import { db } from '../../db';
-import { session, user} from '../../db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { auth } from '../../lib/auth';
+import { fromNodeHeaders } from 'better-auth/node';
 
 declare global {
   namespace Express {
@@ -26,74 +25,32 @@ declare global {
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Get the session token from cookies or authorization header
-    let token: string | undefined;
-    
-    // Check cookies first (Better-auth uses cookies by default)
-    const cookieToken = req.cookies?.['better-auth.session_token'];
-    
-    // Check Authorization header as fallback
-    const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    }
-    
-    // Use cookie token if available, otherwise use header token
-    token = cookieToken || token;
-    
-    if (!token) {
+    // Use Better-auth's built-in session verification
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+
+    if (!session) {
       return res.status(401).json({
         status: 'error',
         message: 'Authentication required',
       });
     }
 
-    // Verify the session exists in the database and is not expired
-    const sessionData = await db.select({
-      sessionId: session.id,
-      sessionUserId: session.userId,
-      sessionExpiresAt: session.expiresAt,
-      sessionToken: session.token,
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      userRole: user.role,
-      userEmailVerified: user.emailVerified,
-      userTwoFactorEnabled: user.twoFactorEnabled,
-    })
-    .from(session)
-    .innerJoin(user as any, eq(session.userId, user.id))
-    .where(
-      and(
-        eq(session.token, token),
-        gt(session.expiresAt, new Date())
-      )
-    )
-    .limit(1);
-
-    if (sessionData.length === 0) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Invalid or expired session',
-      });
-    }
-
-    const data = sessionData[0];
-
     // Attach user and session info to request
     req.user = {
-      id: data.userId,
-      name: data.userName,
-      email: data.userEmail,
-      role: data.userRole,
-      emailVerified: data.userEmailVerified,
-      twoFactorEnabled: data.userTwoFactorEnabled || false,
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      role: session.user.role,
+      emailVerified: session.user.emailVerified,
+      twoFactorEnabled: session.user.twoFactorEnabled ?? false,
     };
     
     req.session = {
-      id: data.sessionId,
-      userId: data.sessionUserId,
-      expiresAt: data.sessionExpiresAt,
+      id: session.session.id,
+      userId: session.session.userId,
+      expiresAt: session.session.expiresAt,
     };
     
     next();

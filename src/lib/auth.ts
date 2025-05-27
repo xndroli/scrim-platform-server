@@ -18,9 +18,6 @@ import { sendEmail } from "../utils/email";
 import { config } from "../config/environment";
 
 console.log('🔧 Initializing Better-auth...');
-console.log('🔧 Database URL configured:', !!config.DATABASE_URL);
-console.log('🔧 Auth secret configured:', !!config.BETTER_AUTH_SECRET);
-console.log('🔧 Environment:', config.NODE_ENV);
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -35,16 +32,20 @@ export const auth = betterAuth({
       // userRole
     }
   }),
-  
+  // Secret key (must be at least 32 characters)
+  secret: config.BETTER_AUTH_SECRET,
+  // Base URL for redirects and callbacks
+  baseURL: config.NODE_ENV === 'production' 
+    ? process.env.BETTER_AUTH_URL
+    : `http://localhost:${config.PORT}`,
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // Disable for testing
     sendResetPassword: async ({ user, url }) => {
       console.log('📧 Password reset requested for:', user.email);
-      console.log('🔗 Reset URL:', url);
 
       // In development, log the URL
-      if (config.NODE_ENV !== 'production') {
+      if (config.NODE_ENV !== 'development') {
         console.log('🔗 Password reset link (DEV):', url);
         return; // Skip sending email in dev
       }
@@ -78,7 +79,11 @@ export const auth = betterAuth({
     sendOnSignUp: false, // Disable for testing
     sendVerificationEmail: async ({ user, url }) => {
       console.log('📧 Email verification for:', user.email);
-      console.log('🔗 Verification URL:', url);
+
+      if (config.NODE_ENV === 'development') {
+        console.log('🔗 Email verification link (DEV):', url);
+        return;
+      }
       
       // In production, send email if configured
       if (config.RESEND_TOKEN && config.EMAIL_FROM_ADDRESS) {
@@ -120,18 +125,19 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day (refresh session daily)
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5 // 5 minute cache
-    }
+    // cookieCache: {
+    //   enabled: true,
+    //   maxAge: 60 * 5 // 5 minute cache
+    // }
   },
 
   // According to docs, trustedOrigins goes at root level
   trustedOrigins: [
-    "http://localhost:3000", // Next.js dev server
-    ...(config.CORS_ORIGIN ? [config.CORS_ORIGIN] : []),
-    ...(config.CORS_ORIGIN_1 ? [config.CORS_ORIGIN_1] : [])
-  ],
+    "http://localhost:3000", 
+    "http://localhost:3001", 
+    config.CORS_ORIGIN,
+    config.CORS_ORIGIN_1
+  ].filter(Boolean),
 
   advanced: {
     // Secret must be at least 32 characters
@@ -143,15 +149,6 @@ export const auth = betterAuth({
       enabled: config.NODE_ENV === "production" // Disable for localhost development
     }
   },
-  
-  // Secret key (must be at least 32 characters)
-  secret: config.BETTER_AUTH_SECRET,
-
-  // Base URL for redirects and callbacks
-  baseURL: config.NODE_ENV === 'production' 
-    ? process.env.API_BASE_URL || 'https://raijinascendancy.com'
-    : 'http://localhost:3001',
-
   // Callbacks for debugging
   callbacks: {
     async signIn({ user, session }: any) {
@@ -166,6 +163,9 @@ export const auth = betterAuth({
 });
 
 console.log('✅ Better-auth initialized successfully');
+
+// Export types for TypeScript
+export type Session = typeof auth.$Infer.Session;
 
   // user: {
   //   additionalFields: {
