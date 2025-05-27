@@ -2,7 +2,7 @@
 import { betterAuth } from "better-auth";
 // import { nextCookies } from "better-auth/next-js";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { twoFactor } from "better-auth/plugins/two-factor";
+// import { twoFactor } from "better-auth/plugins/two-factor";
 import { admin } from "better-auth/plugins/admin";
 import { db } from "../db";
 import { 
@@ -110,14 +110,14 @@ export const auth = betterAuth({
   },
 
   plugins: [
-    twoFactor({
-      issuer: "Raijin Ascendancy",
-      totpOptions: {
-        period: 30,
-        digits: 6,
-        algorithm: "SHA1"
-      } as any
-    }),
+    // twoFactor({
+    //   issuer: "Raijin Ascendancy",
+    //   totpOptions: {
+    //     period: 30,
+    //     digits: 6,
+    //     algorithm: "SHA1"
+    //   } as any
+    // }),
     admin(),
     // nextCookies()
   ],
