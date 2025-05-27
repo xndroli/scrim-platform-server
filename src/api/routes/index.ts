@@ -1,11 +1,11 @@
 // src/api/routes/index.ts
 import { Router } from 'express';
-import authRoutes from './auth.routes';
-import userRoutes from './user.routes';
-import teamRoutes from './team.routes';
-import scrimRoutes from './scrim.routes';
-import emailRoutes from './email.routes';
-import integrationRoutes from './integration.routes';
+// import authRoutes from './auth.routes';
+// import userRoutes from './user.routes';
+// import teamRoutes from './team.routes';
+// import scrimRoutes from './scrim.routes';
+// import emailRoutes from './email.routes';
+// import integrationRoutes from './integration.routes';
 
 const router = Router();
 
@@ -19,8 +19,8 @@ router.use((req, res, next) => {
 
 // Register routes
 // Auth routes first and handle all /auth/* routes
-console.log('🔧 Registering auth routes at /auth/*');
-router.use('/auth', authRoutes);
+// console.log('🔧 Registering auth routes at /auth/*');
+// router.use('/auth', authRoutes);
 
 // Other routes
 // router.use('/users', userRoutes);
