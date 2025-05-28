@@ -22,15 +22,15 @@ console.log('🔧 Initializing Better-auth...');
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
-    schema: {
-      user,
-      session,
-      account,
-      verification,
-      // twoFactor: twoFactorTable,
-      // role: roleTable,
-      // userRole
-    }
+    // schema: {
+    //   user,
+    //   session,
+    //   account,
+    //   verification,
+    //   // twoFactor: twoFactorTable,
+    //   // role: roleTable,
+    //   // userRole
+    // }
   }),
   // Secret key (must be at least 32 characters)
   secret: config.BETTER_AUTH_SECRET,
@@ -41,38 +41,38 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // Disable for testing
-    sendResetPassword: async ({ user, url }) => {
-      console.log('📧 Password reset requested for:', user.email);
+    // sendResetPassword: async ({ user, url }) => {
+    //   console.log('📧 Password reset requested for:', user.email);
 
-      // In development, log the URL
-      if (config.NODE_ENV !== 'development') {
-        console.log('🔗 Password reset link (DEV):', url);
-        return; // Skip sending email in dev
-      }
+    //   // In development, log the URL
+    //   if (config.NODE_ENV !== 'development') {
+    //     console.log('🔗 Password reset link (DEV):', url);
+    //     return; // Skip sending email in dev
+    //   }
 
-      // In production, send email if configured
-      if (config.RESEND_TOKEN && config.EMAIL_FROM_ADDRESS) {
-        try {
-          await sendEmail({
-            to: user.email,
-            subject: "Reset Your Password",
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h1>Reset Your Password</h1>
-                <p>Hello ${user.name},</p>
-                <p>Click the link below to reset your password:</p>
-                <p><a href="${url}" style="background-color: #4A90E2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset Password</a></p>
-                <p>This link will expire in 1 hour.</p>
-                <p>If you didn't request this, please ignore this email.</p>
-              </div>
-            `
-          });
-          console.log('✅ Password reset email sent to:', user.email);
-        } catch (error) {
-          console.error('❌ Failed to send password reset email:', error);
-        }
-      }
-    }
+    //   // In production, send email if configured
+    //   if (config.RESEND_TOKEN && config.EMAIL_FROM_ADDRESS) {
+    //     try {
+    //       await sendEmail({
+    //         to: user.email,
+    //         subject: "Reset Your Password",
+    //         html: `
+    //           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    //             <h1>Reset Your Password</h1>
+    //             <p>Hello ${user.name},</p>
+    //             <p>Click the link below to reset your password:</p>
+    //             <p><a href="${url}" style="background-color: #4A90E2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Reset Password</a></p>
+    //             <p>This link will expire in 1 hour.</p>
+    //             <p>If you didn't request this, please ignore this email.</p>
+    //           </div>
+    //         `
+    //       });
+    //       console.log('✅ Password reset email sent to:', user.email);
+    //     } catch (error) {
+    //       console.error('❌ Failed to send password reset email:', error);
+    //     }
+    //   }
+    // }
   },
 
   emailVerification: {
@@ -118,7 +118,7 @@ export const auth = betterAuth({
     //     algorithm: "SHA1"
     //   } as any
     // }),
-    admin(),
+    // admin(),
     // nextCookies()
   ],
 
@@ -139,14 +139,14 @@ export const auth = betterAuth({
     config.CORS_ORIGIN_1
   ].filter(Boolean),
 
-  advanced: {
-    // Secret must be at least 32 characters
-    useSecureCookies: config.NODE_ENV === "production",
-    cookiePrefix: "better-auth",
-    crossSubDomainCookies: {
-      enabled: config.NODE_ENV === "production" // Enable only in production
-    }
-  },
+  // advanced: {
+  //   // Secret must be at least 32 characters
+  //   useSecureCookies: config.NODE_ENV === "production",
+  //   cookiePrefix: "better-auth",
+  //   crossSubDomainCookies: {
+  //     enabled: config.NODE_ENV === "production" // Enable only in production
+  //   }
+  // },
   // Callbacks for debugging
   callbacks: {
     async signIn({ user, session }: any) {

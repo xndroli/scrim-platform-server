@@ -21,57 +21,58 @@ app.use(helmet({
 }));
 
 // CORS configuration - FIXED
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://scrim-platform-client.vercel.app',
-  config.CORS_ORIGIN,
-  config.CORS_ORIGIN_1,
-].filter(Boolean);
+// const allowedOrigins = [
+//   'http://localhost:3000',
+//   'https://scrim-platform-client.vercel.app',
+//   config.CORS_ORIGIN,
+//   config.CORS_ORIGIN_1,
+// ].filter(Boolean);
 
-console.log('🌐 Allowed CORS origins:', allowedOrigins);
+// console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
 app.use(cors({
-  origin: function(origin, callback) {
-    console.log('🔍 CORS check for origin:', origin);
+  origin: 'https://scrim-platform-client.vercel.app',
+  // function(origin, callback) {
+  //   console.log('🔍 CORS check for origin:', origin);
     
-    // Allow requests with no origin (like mobile apps, Postman, curl)
-    if (!origin) {
-      console.log('✅ No origin - allowing request');
-      return callback(null, true);
-    }
+  //   // Allow requests with no origin (like mobile apps, Postman, curl)
+  //   if (!origin) {
+  //     console.log('✅ No origin - allowing request');
+  //     return callback(null, true);
+  //   }
     
-    // Check if origin is in allowed list
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      if (allowedOrigin.includes('*')) {
-        // Handle wildcard patterns like *.vercel.app
-        const pattern = allowedOrigin.replace('*', '.*');
-        const regex = new RegExp(`^${pattern}$`);
-        return regex.test(origin);
-      }
-      return allowedOrigin === origin;
-    });
+  //   // Check if origin is in allowed list
+  //   const isAllowed = allowedOrigins.some(allowedOrigin => {
+  //     if (allowedOrigin.includes('*')) {
+  //       // Handle wildcard patterns like *.vercel.app
+  //       const pattern = allowedOrigin.replace('*', '.*');
+  //       const regex = new RegExp(`^${pattern}$`);
+  //       return regex.test(origin);
+  //     }
+  //     return allowedOrigin === origin;
+  //   });
     
-    if (isAllowed) {
-      console.log('✅ Origin allowed:', origin);
-      callback(null, true);
-    } else {
-      console.log('❌ CORS blocked origin:', origin);
-      console.log('📋 Allowed origins:', allowedOrigins);
-      callback(new Error(`CORS: Origin ${origin} not allowed`));
-    }
-  },
+  //   if (isAllowed) {
+  //     console.log('✅ Origin allowed:', origin);
+  //     callback(null, true);
+  //   } else {
+  //     console.log('❌ CORS blocked origin:', origin);
+  //     console.log('📋 Allowed origins:', allowedOrigins);
+  //     callback(new Error(`CORS: Origin ${origin} not allowed`));
+  //   }
+  // },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'Cookie',
-    'X-Requested-With',
-    'Accept',
-    'Origin'
-  ],
-  exposedHeaders: ['set-cookie'],
-  optionsSuccessStatus: 200 // For legacy browser support
+  // methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  // allowedHeaders: [
+  //   'Content-Type', 
+  //   'Authorization', 
+  //   'Cookie',
+  //   'X-Requested-With',
+  //   'Accept',
+  //   'Origin'
+  // ],
+  // exposedHeaders: ['set-cookie'],
+  // optionsSuccessStatus: 200 // For legacy browser support
 }));
 
 // Auth routes
@@ -79,7 +80,7 @@ app.all("/api/auth/*", toNodeHandler(auth)); // For ExpressJS v4
 // app.all("/api/auth/*splat", toNodeHandler(auth)); For ExpressJS v5
 
 // Cookie parsing
-app.use(cookieParser());
+// app.use(cookieParser());
 
 // JSON middleware
 app.use(express.json());
@@ -112,7 +113,7 @@ app.get('/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     cors: {
-      allowedOrigins: allowedOrigins,
+      // allowedOrigins: allowedOrigins,
       requestOrigin: req.headers.origin
     },
     auth: {
