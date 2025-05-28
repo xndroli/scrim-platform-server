@@ -145,11 +145,7 @@ export const auth = betterAuth({
     cookiePrefix: "better-auth",
     crossSubDomainCookies: {
       enabled: config.NODE_ENV === "production" // Enable only in production
-    },
-    database: {
-      generateId: () => crypto.randomUUID()
-      // generateId: false,
-    },
+    }
   },
   // Callbacks for debugging
   callbacks: {

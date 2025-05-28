@@ -16,7 +16,7 @@ import {
 } from 'discord.js';
 import { config } from '../config/environment';
 import { db } from '../db';
-import { scrims, user } from '../db/schema-test';
+import { scrims, user } from '../db/old-schema';
 import { eq } from 'drizzle-orm';
 
 export class DiscordService {

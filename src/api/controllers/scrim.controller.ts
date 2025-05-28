@@ -1,7 +1,7 @@
 // src/api/controllers/scrim.controller.ts - Enhanced with Discord & Apex integration
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db';
-import { scrims, scrimParticipants, teams, teamMembers, matches, matchResults, playerMatchStats, user, discordScrimChannels } from '../../db/schema-test';
+import { scrims, scrimParticipants, teams, teamMembers, matches, matchResults, playerMatchStats, user, discordScrimChannels } from '../../db/old-schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { sendEmail, emailTemplates } from '../../utils/email';
 import { discordService } from '../../services/discord.service';

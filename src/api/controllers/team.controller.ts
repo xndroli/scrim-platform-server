@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db';
-import { teams, teamMembers, user } from '../../db/schema-test';
+import { teams, teamMembers, user } from '../../db/old-schema';
 import { eq, and, inArray } from 'drizzle-orm';
 
 export class TeamController {

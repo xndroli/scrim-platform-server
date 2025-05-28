@@ -71,7 +71,7 @@ app.use(cors({
     'Origin'
   ],
   exposedHeaders: ['set-cookie'],
-  optionsSuccessStatus: 200, // For legacy browser support
+  optionsSuccessStatus: 200 // For legacy browser support
 }));
 
 // Auth routes

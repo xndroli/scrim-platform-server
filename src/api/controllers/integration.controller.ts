@@ -1,7 +1,7 @@
 // src/api/controllers/integration.controller.ts
 import { Request, Response, NextFunction } from 'express';
 import { db } from '../../db';
-import { user, apexPlayerStats, teams, teamMembers, scrims } from '../../db/schema-test';
+import { user, apexPlayerStats, teams, teamMembers, scrims } from '../../db/old-schema';
 import { eq, inArray, isNotNull } from 'drizzle-orm';
 import { apexService } from '../../services/apex.service';
 import { discordService } from '../../services/discord.service';

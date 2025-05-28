@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import axios from 'axios';
 import { randomUUID } from 'crypto';
 import { db } from '../../db';
-import { user } from '../../db/schema-test';
+import { user } from '../../db/old-schema';
 import { eq } from 'drizzle-orm';
 import { config } from '../../config/environment';
 
