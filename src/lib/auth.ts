@@ -147,8 +147,8 @@ export const auth = betterAuth({
       enabled: config.NODE_ENV === "production" // Enable only in production
     },
     database: {
-      // generateId: () => crypto.randomUUID()
-      generateId: false,
+      generateId: () => crypto.randomUUID()
+      // generateId: false,
     },
   },
   // Callbacks for debugging
