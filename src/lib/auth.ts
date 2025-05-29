@@ -37,7 +37,7 @@ export const auth = betterAuth({
   // Base URL for redirects and callbacks
   baseURL: config.NODE_ENV === 'production' 
     ? process.env.BETTER_AUTH_URL
-    : `http://localhost:${config.PORT}`,
+    : 'http://localhost:3001',
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // Disable for testing

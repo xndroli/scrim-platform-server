@@ -31,7 +31,9 @@ app.use(helmet({
 // console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
 app.use(cors({
-  origin: 'https://scrim-platform-client.vercel.app',
+  origin: config.NODE_ENV === 'production' 
+    ? process.env.BETTER_AUTH_URL
+    : `http://localhost:3000`,
   // function(origin, callback) {
   //   console.log('🔍 CORS check for origin:', origin);
     
@@ -129,7 +131,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api', routes);
+// app.use('/api', routes);
 
 // 404 handler
 app.use((req, res) => {
